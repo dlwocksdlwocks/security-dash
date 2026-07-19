@@ -436,7 +436,7 @@
 
         async function fetchDashboardData() {
             try {
-                const response = await fetch('http://localhost:8000/api/dashboard');
+                const response = await fetch('/api/dashboaed');
                 const data = await response.json();
 
                 document.getElementById('ciso-view-text').innerText = data.ciso_view;
