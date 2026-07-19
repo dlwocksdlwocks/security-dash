@@ -7,6 +7,7 @@ from openai import OpenAI
 import json
 import os
 from dotenv import load_dotenv
+from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -114,3 +116,6 @@ def get_dashboard_data(db: Session = Depends(get_db)):
             "summary": gpt_analysis.get("leak_summary")
         }
     }
+
+# 현재 폴더(".")에 있는 index.html 등의 파일을 루트("/") 경로로 접근할 수 있게 매핑
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
