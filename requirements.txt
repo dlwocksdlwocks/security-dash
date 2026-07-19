@@ -5,4 +5,5 @@ psycopg2-binary
 feedparser
 beautifulsoup4
 requests
-google-genai
+openai
+python-dotenv
