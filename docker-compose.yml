@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    platform: linux/amd64 
+    container_name: security_postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: security_admin
+      POSTGRES_PASSWORD: security_password123!
+      POSTGRES_DB: security_intelligence
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:

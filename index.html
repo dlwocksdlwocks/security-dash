@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정보보안센터 일일 보안 알람</title>
+    <style>
+        :root {
+            --bg-color: #060913;
+            --card-bg: rgba(16, 24, 48, 0.85);
+            --border-color: #1e2e4d;
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --text-primary: #f1f5f9;
+            --text-secondary: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-red: #f43f5e;
+            --accent-green: #10b981;
+            --neon-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            --neon-red-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(16, 24, 48, 0.5) 0px, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(7, 89, 133, 0.25) 0px, transparent 50%);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Roboto, 'Monaco', sans-serif;
+            margin: 0;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(90deg, rgba(11, 15, 25, 0.9) 0%, transparent 100%);
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 6px;
+            box-shadow: var(--border-glow);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header h1 span {
+            color: var(--accent-blue);
+            text-shadow: var(--neon-shadow);
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .grid-master {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 24px;
+        }
+
+        .main-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .side-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 14px;
+            letter-spacing: 1.5px;
+            color: var(--accent-blue);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card h2::after {
+            content: '시스템 상태: 정상';
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-family: sans-serif;
+        }
+
+        .viewpoint-card {
+            background: radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 60%), var(--card-bg);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: var(--neon-shadow);
+        }
+        
+        .viewpoint-card::before {
+            background: linear-gradient(90deg, var(--accent-blue), #a855f7);
+        }
+
+        #ciso-view-text {
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.5;
+            letter-spacing: -0.5px;
+            word-break: keep-all;
+            padding: 10px 0;
+            border-left: 4px solid var(--accent-blue);
+            padding-left: 20px;
+        }
+
+        .leak-card {
+            border-color: rgba(244, 63, 94, 0.3);
+        }
+        .leak-card::before {
+            background: linear-gradient(90deg, var(--accent-red), transparent);
+        }
+        .leak-card h2 {
+            color: var(--accent-red);
+        }
+        .leak-card h2::after {
+            content: '위험 경보';
+            color: var(--accent-red);
+            text-shadow: var(--neon-red-shadow);
+        }
+        
+        .leak-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(244, 63, 94, 0.15);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .leak-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffe4e6;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .leak-title::before {
+            content: '⚠️';
+        }
+
+        .leak-summary {
+            font-size: 14px;
+            color: #cbd5e1;
+            line-height: 1.7;
+        }
+
+        .cve-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cve-item {
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(36, 50, 77, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .cve-item:hover {
+            background: rgba(56, 189, 248, 0.03);
+        }
+
+        .cve-item:last-child {
+            border-bottom: none;
+        }
+
+        .cve-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cve-badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            font-family: monospace;
+        }
+
+        .cve-date {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .cve-title {
+            font-size: 13.5px;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .random-cve-card {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(15, 23, 42, 0.9) 100%);
+        }
+
+        .random-cve-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+            box-shadow: var(--neon-shadow);
+        }
+
+        .random-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f8fafc;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .explore-tip {
+            font-size: 11px;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #0f172a;
+            border: 1px solid var(--accent-blue);
+            box-shadow: var(--neon-shadow);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 650px;
+            padding: 30px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px; right: 20px;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-btn:hover { color: var(--accent-red); }
+
+        .modal-btn {
+            display: inline-block;
+            background-color: var(--accent-blue);
+            color: #060913;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 20px;
+            transition: opacity 0.2s;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .modal-btn:hover { opacity: 0.9; }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes spin-reverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><span>정보보안센터 일일 보안 알람</span></h1>
+        <div style="display: flex; align-items: center; gap: 15px; font-size: 13px; font-family: monospace;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="live-indicator"></span>
+                <span style="color: var(--accent-green); font-weight: 700;">실시간 위협 피드</span>
+            </div>
+            <div style="color: var(--text-secondary);" id="current-time"></div>
+        </div>
+    </header>
+
+    <div class="grid-master">
+        
+        <!-- 왼쪽 대형 스트림: 뷰포트 -> 유출 사례 -> KOMSCO 에이전트 -->
+        <div class="main-stream">
+            
+            <!-- 1. 오늘의 보안 뷰포인트 -->
+            <div class="card viewpoint-card">
+                <h2>오늘의 보안 뷰포인트</h2>
+                <div id="ciso-view-text">위협 인텔리전스 동향 매핑 및 데이터 분석 프로세스 가동 중...</div>
+            </div>
+
+            <!-- 2. 금일 개인 정보 유출 사례 브리핑 -->
+            <div class="card leak-card">
+                <h2>금일 개인 정보 유출 사례 브리핑</h2>
+                <div class="leak-container">
+                    <div id="leak-title" class="leak-title">분석 파싱 엔진 구동 중...</div>
+                    <div id="leak-summary" class="leak-summary">보안 동향 뉴스에서 개인정보 탈취 및 침해 공격 인스턴스를 식별 중입니다.</div>
+                </div>
+            </div>
+
+            <!-- 3. KOMSCO 보안 에이전트 (캐릭터 중심의 깔끔한 구성) -->
+            <div class="card" style="text-align: center; background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.12) 0%, transparent 70%), var(--card-bg); border-color: rgba(56, 189, 248, 0.3);">
+                <h2>KOMSCO AI 보안 에이전트</h2>
+                
+                <div style="position: relative; width: 160px; height: 160px; margin: 10px auto; display: flex; justify-content: center; align-items: center;">
+                    <!-- 사이버네틱 스캔 링 효과 -->
+                    <div style="position: absolute; width: 150px; height: 150px; border: 2px dashed rgba(56, 189, 248, 0.4); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+                    <div style="position: absolute; width: 130px; height: 130px; border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 50%; animation: spin-reverse 6s linear infinite;"></div>
+                    
+                    <img src="jopani.png" alt="KOMSCO Agent" style="
+                        width: 120px; 
+                        height: 120px; 
+                        object-fit: contain; 
+                        position: relative; 
+                        z-index: 2;
+                        filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6)) contrast(1.05) brightness(1.05);
+                    ">
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- 오른쪽 컨트롤 스트림: 신규 취약점 -> 임의 취약점 아카이브 -->
+        <div class="side-stream">
+            
+            <!-- 1. 신규 보안 취약점 (KISA) -->
+            <div class="card">
+                <h2>신규 보안 취약점 (KISA)</h2>
+                <ul class="cve-list" id="new-cve-list">
+                    <li style="color: var(--text-secondary); font-size: 13px; font-family: sans-serif;">KISA 저장소 연결 중...</li>
+                </ul>
+            </div>
+
+            <!-- 2. 일일 임의 취약점 아카이브 -->
+            <div class="card random-cve-card" id="random-cve-box">
+                <h2>일일 임의 취약점 아카이브</h2>
+                <div id="random-cve-badge" class="cve-badge" style="width: max-content; margin-bottom: 12px; display:none;"></div>
+                <div id="random-cve-title" class="random-title">데이터 아카이브 쿼리 실행 중...</div>
+                <div class="explore-tip">
+                    <span>⚡ 안내: 클릭 시 세부 위협 분석 팝업 개방</span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- 모달 팝업 구조 -->
+    <div class="modal" id="cve-modal">
+        <div class="modal-content">
+            <span class="close-btn" id="modal-close">&times;</span>
+            <h3 id="modal-title" style="color: var(--accent-blue); margin-top:0; font-size: 18px; line-height: 1.4;"></h3>
+            <p id="modal-summary" style="line-height: 1.7; font-size: 14px; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color);"></p>
+            <a href="#" id="modal-link" target="_blank" class="modal-btn">KISA 원본 분석 페이지 개방</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('current-time').innerText = "시스템 시간: " + new Date().toLocaleString();
+
+        let randomCveData = null;
+
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch('http://localhost:8000/api/dashboard');
+                const data = await response.json();
+
+                document.getElementById('ciso-view-text').innerText = data.ciso_view;
+
+                document.getElementById('leak-title').innerText = data.leak_section.title;
+                document.getElementById('leak-summary').innerText = data.leak_section.summary;
+
+                const cveListEl = document.getElementById('new-cve-list');
+                cveListEl.innerHTML = '';
+                if(data.new_cves.length === 0) {
+                    cveListEl.innerHTML = '<li style="color: var(--text-secondary); font-size:13px; padding:10px 0;">금일 발견된 신규 취약점이 없습니다.</li>';
+                } else {
+                    data.new_cves.forEach(cve => {
+                        const li = document.createElement('li');
+                        li.className = 'cve-item';
+                        li.innerHTML = `
+                            <div class="cve-header">
+                                <span class="cve-badge">${cve.cve_code ? cve.cve_code : 'KISA_경보'}</span>
+                                <span class="cve-date">${cve.created_at}</span>
+                            </div>
+                            <div class="cve-title" title="${cve.title}">${cve.title}</div>
+                        `;
+                        cveListEl.appendChild(li);
+                    });
+                }
+
+                if (data.random_cve) {
+                    randomCveData = data.random_cve;
+                    document.getElementById('random-cve-title').innerText = data.random_cve.title;
+                    const badge = document.getElementById('random-cve-badge');
+                    if (data.random_cve.cve_code) {
+                        badge.innerText = data.random_cve.cve_code;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+            } catch (error) {
+                console.error("인텔리전스 데이터 연동 실패:", error);
+                document.getElementById('ciso-view-text').innerText = "API 게이트웨이 연결 실패 (백엔드 서버를 확인하세요)";
+            }
+        }
+
+        const modal = document.getElementById('cve-modal');
+        document.getElementById('random-cve-box').addEventListener('click', () => {
+            if (!randomCveData) return;
+            document.getElementById('modal-title').innerText = randomCveData.title;
+            document.getElementById('modal-summary').innerText = randomCveData.summary ? randomCveData.summary : "해당 위협에 대한 상세 기술 요약 아카이브가 존재하지 않습니다.";
+            document.getElementById('modal-link').href = randomCveData.link;
+            modal.style.display = 'flex';
+        });
+
+        document.getElementById('modal-close').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        fetchDashboardData();
+    </script>
+</body>
+</html>
