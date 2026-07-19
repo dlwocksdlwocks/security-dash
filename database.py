@@ -2,9 +2,13 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
+import os
 
 # 도커 컴포즈에 설정한 DB 정보와 일치합니다.
-DATABASE_URL = "postgresql://security_admin:security_password123!@localhost:5432/security_intelligence"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql://security_admin:security_password123!@localhost:5432/security_intelligence"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

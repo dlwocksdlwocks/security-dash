@@ -134,7 +134,7 @@ def fetch_all_bohonara():
                     content=content_text,
                     summary=summary,
                     cve_code=cve_code,  # CVE 컬럼 추가됨
-                    published_at=datetime.datetime.utcnow()
+                    published_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 db.add(article)
                 page_saved_count += 1
