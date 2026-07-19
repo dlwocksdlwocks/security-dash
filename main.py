@@ -1,227 +1,114 @@
-import feedparser
-import requests
-from bs4 import BeautifulSoup
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from database import SessionLocal, SecurityVulnerability, SecurityNews
 from openai import OpenAI
-# 💡 분리된 두 개의 테이블 모델과 기능을 가져옵니다.
-from database import SessionLocal, init_db, SecurityVulnerability, SecurityNews
-import datetime
-import time
-import urllib.parse
-import re  # CVE 코드 추출을 위한 정규식 라이브러리
+import json
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
-# OpenAI 클라이언트 초기화
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 
-# 브라우저 우회용 헤더 세팅
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
-}
+# 프론트엔드 연동을 위한 CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def crawl_bohonara_vulnerability(db):
-    """KISA 보호나라 취약점 게시판에서 새 공지 1건을 수집하여 SecurityVulnerability 테이블에 저장합니다."""
-    print("\n📡 [KISA 보호나라] 취약점 정보 수집 중 (nttId 기준)...")
-    list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205023&bbsId=B0000302"
-    
-    try:
-        res = requests.get(list_url, headers=HEADERS, timeout=10)
-        res.encoding = 'utf-8'
-        soup = BeautifulSoup(res.text, 'html.parser')
-        
-        post_items = soup.select("div.tbl_responsive table tbody tr")
-        if not post_items:
-            post_items = soup.select("table tbody tr")
-            
-        if not post_items:
-            print("❌ 보호나라 게시글 목록을 찾을 수 없습니다.")
-            return
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        for tr in post_items:
-            link_tag = tr.select_one("td.sbj.tal a")
-            if not link_tag:
-                link_tag = tr.select_one("td a")
-                
-            if not link_tag:
-                continue
-                
-            title = link_tag.get_text(strip=True)
-            href = link_tag.get('href', '')
-            
-            # 1. nttId 파라미터 추출
-            parsed_url = urllib.parse.urlparse(href)
-            params = urllib.parse.parse_qs(parsed_url.query)
-            ntt_id = params.get('nttId', [None])[0]
-            
-            if not ntt_id and 'nttId=' in href:
-                ntt_id = href.split('nttId=')[1].split('&')[0]
-            
-            if not ntt_id:
-                continue
-
-            full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205023&bbsId=B0000302&nttId={ntt_id}"
-            
-            # 2. SecurityVulnerability 테이블에서 중복 체크
-            exists = db.query(SecurityVulnerability).filter(SecurityVulnerability.link.like(f"%nttId={ntt_id}%")).first()
-            if exists:
-                continue  
-                
-            print(f"📰 새 취약점 공지 발견 (nttId: {ntt_id}): [KISA 보호나라] - {title}")
-            content_text = ""
-            try:
-                detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
-                detail_res.encoding = 'utf-8'
-                detail_soup = BeautifulSoup(detail_res.text, 'html.parser')
-                
-                view_content = detail_soup.select_one(".bbs_view_container")
-                if view_content:
-                    content_text = view_content.get_text(strip=True)[:2500]
-                else:
-                    content_text = detail_soup.get_text(strip=True)[:2500]
-            except Exception:
-                content_text = title
-                
-            # 💡 제목과 본문에서 CVE 코드 패턴 자동 추출
-            cve_code = None
-            cve_match = re.search(r"CVE-\d{4}-\d{4,5}", title + content_text, re.IGNORECASE)
-            if cve_match:
-                cve_code = cve_match.group(0).upper()
-                
-            summary = summarize_with_chatgpt(title, content_text, "KISA 보호나라", "KISA 침해사고분석단")
-            
-            # 💡 전용 테이블 객체 생성 및 cve_code 주입
-            article = SecurityVulnerability(
-                source="KISA 보호나라",
-                author="KISA 침해사고분석단",
-                title=title,
-                link=full_link,
-                content=content_text,
-                summary=summary,
-                cve_code=cve_code,
-                published_at=datetime.datetime.utcnow()
-            )
-            db.add(article)
-            db.commit()
-            print(f"✅ 보호나라 최신 취약점 1건(nttId: {ntt_id}, CVE: {cve_code}) 저장 완료.")
-            return  
-            
-        print("⏭️ 보호나라에 새로 등록된 취약점 공지가 없습니다.")
-    except Exception as e:
-        print(f"❌ 보호나라 nttId 기반 크롤링 실패: {e}")
-
-def crawl_rss_source(db, name, url, default_author):
-    """보안뉴스 및 데일리시큐 RSS 피드에서 각각 최신 5건을 수집하여 SecurityNews 테이블에 저장합니다."""
-    print(f"\n📡 [{name}] 신규 위협 피드 수집 중...")
-    try:
-        session = requests.Session()
-        response = session.get(url, headers=HEADERS, timeout=10)
-        
-        if "boannews" in url:
-            response.encoding = "euc-kr"
-        else:
-            response.encoding = response.apparent_encoding
-
-        feed = feedparser.parse(response.text)
-        
-        # 방화벽 우회용 백업 XML 파싱 구조 활성화
-        if not feed.entries:
-            soup = BeautifulSoup(response.text, 'xml')
-            items = soup.find_all('item')
-            feed.entries = []
-            for item in items:
-                class Entry: pass
-                e = Entry()
-                e.title = item.title.text if item.title else ""
-                e.link = item.link.text if item.link else ""
-                e.description = item.description.text if item.description else ""
-                feed.entries.append(e)
-
-        count = 0
-        for entry in feed.entries[:5]:
-            if not entry.title:
-                continue
-                
-            # 💡 SecurityNews 테이블에서 중복 체크 (제목 기준)
-            exists = db.query(SecurityNews).filter(SecurityNews.title == entry.title).first()
-            if exists:
-                continue
-                
-            author = default_author
-            if hasattr(entry, 'author') and entry.author:
-                author = entry.author
-                
-            print(f"📰 새 신규 위협 기사 발견: [{name}] - {entry.title}")
-            
-            content_text = ""
-            try:
-                res = session.get(entry.link, headers=HEADERS, timeout=10)
-                res.encoding = response.encoding
-                soup = BeautifulSoup(res.text, 'html.parser')
-                content_text = soup.get_text(strip=True)[:2500]
-            except Exception:
-                content_text = entry.description if hasattr(entry, 'description') else ""
-                
-            summary = summarize_with_chatgpt(entry.title, content_text, name, author)
-            
-            # 💡 뉴스 전용 테이블 객체 생성
-            article = SecurityNews(
-                source=name,
-                author=author,
-                title=entry.title,
-                link=entry.link,
-                content=content_text,
-                summary=summary,
-                published_at=datetime.datetime.utcnow()
-            )
-            db.add(article)
-            count += 1
-            
-        db.commit()
-        print(f"✅ [{name}] 새 기사 {count}건 저장 완료.")
-    except Exception as e:
-        print(f"❌ [{name}] 피드 파싱 실패: {e}")
-
-def crawl_and_sync_all():
-    print("🚀 카테고리별 보안 데이터 수집 및 센터 공지 요약 프로세스 가동 (ChatGPT)...")
+def get_db():
     db = SessionLocal()
-    
-    crawl_bohonara_vulnerability(db)
-    crawl_rss_source(db, "보안뉴스", "https://www.boannews.com/media/rss.xml", "보안뉴스 취재팀")
-    crawl_rss_source(db, "데일리시큐", "https://www.dailysecu.com/rss/clickTop.xml", "데일리시큐 취재기자")
-    
-    db.close()
-    print("\n🏁 모든 카테고리 데이터 수집 및 종합 요약 저장 완료!")
+    try:
+        yield db
+    finally:
+        db.close()
 
-def summarize_with_chatgpt(title, content, source, author):
+def analyze_news_with_gpt(recent_news):
+    """최근 뉴스 5개를 학습하여 CISO 보안관점 한마디와 유출 기사를 한 번에 분석합니다."""
+    if not recent_news:
+        return {
+            "ciso_view": "현재 수집된 신규 동향 뉴스가 없습니다. 인프라 기본 보안 정책을 유지하십시오.",
+            "leak_title": "유출 관련 동향 없음",
+            "leak_summary": "최근 5건 내에 개인정보 및 데이터 유출 관련 뉴스가 존재하지 않습니다."
+        }
+        
+    news_context = ""
+    for idx, news in enumerate(recent_news):
+        news_context += f"[{idx}] 제목: {news.title}\n본문: {news.content[:500]}\n\n"
+
     prompt = (
-        f"출처: {source} ({author})\n"
-        f"제목: {title}\n"
-        f"본문 내용:\n{content}\n\n"
-        f"너는 정보보안센터 전원(보안 기획 및 운영 팀원 전체)에게 공유할 일일 동향 브리핑을 작성해야 해.\n"
-        f"센터원들이 출근길에 쉽고 명확하게 파악할 수 있도록 핵심 위협과 조치 사항을 중심으로 70글자 내로 짧게 요약해줘.\n"
-        f"요약 끝에는 반드시 '출처: {source} ({author})'를 명시해줘."
+        f"너는 정보보안센터의 CISO이자 최상위 자산 분석가야. 아래 최근 보안 뉴스 5건을 분석해줘.\n\n"
+        f"{news_context}"
+        f"요구사항:\n"
+        f"1. 오늘 우리 보안팀이 가장 집중해야 할 핵심 보안적 조치 사항을 40자 내외의 아주 기술적이고 명령어 형태인 '한마디'로 작성해줘. 다만, 특정 회사이름이 들어가면 안되고 해당 사건을 취합해 봤을 때 기술적으로 어떤 관점이 필요한지를 적어줘 특히 db,os,단말등 중에 하나를 짚어서 이야기 해줘야해 (예: 'DB/Web 서버 최신 보안 패치 적용 및 취약 포트 차단 조치 요망')\n"
+        f"2. 제공된 5건의 뉴스 중 '개인정보 유출', '데이터 침해(Data Breach)'등 '유출 사고'와 가장 관련이 깊은 기사 1개를 선정해서 그 기사의 제목และ 핵심 요약(70자 내외)을 적어줘. 만약 관련 기사가 전혀 없다면 가장 위험도가 높은 기사를 선정해줘.\n\n"
+        f"반드시 아래 JSON 형식으로만 답변해줘. 다른 설명은 금지해.\n"
+        f"{{\n"
+        f"  \"ciso_view\": \"CISO 관점 한마디 내용\",\n"
+        f"  \"leak_title\": \"선정된 유출 기사 제목\",\n"
+        f"  \"leak_summary\": \"유출 기사 요약 내용\"\n"
+        f"}}"
     )
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "너는 정보보안센터의 CISO이자 종합 컨트롤타워야. 모든 보안 직원이 직관적으로 이해할 수 있게 팩트 기반의 명확한 요약 보고서를 작성하는 전문가야."},
+                {"role": "system", "content": "너는 보안 데이터 가공 전문가이며 정해진 JSON 포맷으로만 출력하는 봇이야."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3
+            response_format={"type": "json_object"},
+            temperature=0.2
         )
-        return response.choices[0].message.content
+        return json.loads(response.choices[0].message.content)
     except Exception as e:
-        print(f"❌ ChatGPT 요약 실패: {e}")
-        return "요약 프로세스 일시적 제한"
+        print(f"❌ GPT 분석 실패: {e}")
+        return {
+            "ciso_view": "인프라 자산 취약점 모니터링 및 방화벽 접근제어 정책 점검 요망",
+            "leak_title": "데이터 분석 프로세스 오류",
+            "leak_summary": "실시간 뉴스 분석 중 일시적인 API 지연이 발생했습니다."
+        }
 
-
-if __name__ == "__main__":
-    init_db()
+@app.get("/api/dashboard")
+def get_dashboard_data(db: Session = Depends(get_db)):
+    # 1 & 4. 최근 뉴스 5개 수집 및 AI 종합 분석
+    recent_news = db.query(SecurityNews).order_by(SecurityNews.id.desc()).limit(5).all()
+    gpt_analysis = analyze_news_with_gpt(recent_news)
     
-    crawl_and_sync_all()
+    # 2. 오른쪽 첫번째: 신규 CVE (보호나라 최신 5건)
+    new_vulnerabilities = db.query(SecurityVulnerability).order_by(SecurityVulnerability.id.desc()).limit(5).all()
+    
+    # 3. 오른쪽 두번째: 무작위 과거 CVE 1건 추출
+    random_vulnerability = db.query(SecurityVulnerability).order_by(func.random()).first()
+    
+    return {
+        "ciso_view": gpt_analysis.get("ciso_view"),
+        "new_cves": [
+            {
+                "id": v.id,
+                "cve_code": v.cve_code,
+                "title": v.title,
+                "link": v.link,
+                "summary": v.summary,
+                "created_at": v.created_at.strftime("%Y-%m-%d") if v.created_at else ""
+            } for v in new_vulnerabilities
+        ],
+        "random_cve": {
+            "id": random_vulnerability.id,
+            "cve_code": random_vulnerability.cve_code if random_vulnerability else None,
+            "title": random_vulnerability.title if random_vulnerability else "저장된 취약점 없음",
+            "summary": random_vulnerability.summary if random_vulnerability else "",
+            "link": random_vulnerability.link if random_vulnerability else "#"
+        } if random_vulnerability else None,
+        "leak_section": {
+            "title": gpt_analysis.get("leak_title"),
+            "summary": gpt_analysis.get("leak_summary")
+        }
+    }
