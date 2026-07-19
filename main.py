@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from database import SessionLocal, SecurityVulnerability, SecurityNews
+from database import SessionLocal, init_db,SecurityVulnerability, SecurityNews
 from openai import OpenAI
 import json
 import os
@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
+
+init_db()
 
 # 프론트엔드 연동을 위한 CORS 설정
 app.add_middleware(
