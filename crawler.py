@@ -349,6 +349,76 @@ def fetch_security_news():
         db.close()
     print("🏁 [스케줄러] 정기 보안 뉴스 수집 완료!")
 
+def crawl_bohonara_notice(db):
+    """KISA 보호나라 보안공지 게시판(B0000133)에서 최신 공지목록을 수집합니다."""
+    print("\n📡 [KISA 보호나라] 보안 공지 수집 중...")
+    list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205020&bbsId=B0000133"
+
+    try:
+        res = requests.get(list_url, headers=HEADERS, timeout=10)
+        res.encoding = "utf-8"
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        post_items = soup.select("div.tbl_responsive table tbody tr")
+        if not post_items:
+            post_items = soup.select("table tbody tr")
+
+        count = 0
+        for tr in post_items:
+            # 제목 및 링크 추출
+            link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
+            if not link_tag:
+                continue
+
+            title = link_tag.get_text(strip=True)
+            href = link_tag.get("href", "")
+
+            parsed_url = urllib.parse.urlparse(href)
+            params = urllib.parse.parse_qs(parsed_url.query)
+            ntt_id = params.get("nttId", [None])[0]
+
+            if not ntt_id and "nttId=" in href:
+                ntt_id = href.split("nttId=")[1].split("&")[0]
+
+            if not ntt_id:
+                continue
+
+            full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205020&bbsId=B0000133&nttId={ntt_id}"
+
+            # 게시일자 추출 (보통 4번째 또는 5번째 td)
+            tds = tr.select("td")
+            posted_date = ""
+            for td in tds:
+                text = td.get_text(strip=True)
+                if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+                    posted_date = text
+                    break
+
+            if not posted_date:
+                posted_date = datetime.date.today().strftime("%Y-%m-%d")
+
+            # 중복 체크
+            exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
+            if exists:
+                continue
+
+            notice = SecurityNotice(
+                title=title,
+                link=full_link,
+                posted_date=posted_date
+            )
+            db.add(notice)
+            count += 1
+
+        db.commit()
+        print(f"✅ [보호나라 공지] 신규 공지 {count}건 저장 완료.")
+
+    except Exception as e:
+        print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
+
+# crawl_and_sync_all() 함수 내부 및 fetch_security_news() 내부에 crawl_bohonara_notice(db) 호출 추가
+
+
 
 if __name__ == "__main__":
     init_db()

@@ -125,16 +125,13 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         }
 
-        /* 뷰포인트 카드를 2, CVE 탐색 카드를 1 비율로 배치 */
-        .right-column .ciso-card {
-            flex: 2;
+        .right-column .card {
             min-height: 0;
         }
 
-        .right-column .cve-archive-card {
-            flex: 1;
-            min-height: 0;
-        }
+        .right-column .ciso-card { flex: 1.2; }
+        .right-column .notice-card { flex: 1.5; border-left: 4px solid var(--accent-amber); }
+        .right-column .cve-archive-card { flex: 0.8; border-left: 4px solid var(--accent-purple); }
 
         .card-header {
             display: flex;
@@ -153,10 +150,8 @@
             gap: 8px;
         }
 
-        /* 1. 왼쪽 메인: 뉴스 섹션 및 탭 버튼 */
-        .news-section {
-            height: 100%;
-        }
+        /* 뉴스 섹션 및 탭 버튼 */
+        .news-section { height: 100%; }
 
         .category-tabs {
             display: flex;
@@ -245,7 +240,7 @@
             line-height: 1.4;
         }
 
-        /* 오른쪽 1: 오늘의 보안 뷰포인트 */
+        /* CISO 카드 */
         .ciso-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border-left: 4px solid var(--accent-blue);
@@ -255,7 +250,7 @@
             background: rgba(59, 130, 246, 0.08);
             border: 1px solid rgba(59, 130, 246, 0.25);
             border-radius: 10px;
-            padding: 18px;
+            padding: 14px;
             flex: 1;
             display: flex;
             align-items: center;
@@ -263,17 +258,45 @@
         }
 
         #ciso-view-text {
-            font-size: 17px;
-            line-height: 1.6;
+            font-size: 15px;
+            line-height: 1.5;
             color: #ffffff;
-            font-weight: 700;
+            font-weight: 600;
             word-break: keep-all;
             white-space: pre-line;
         }
 
-        /* 오른쪽 2: 무작위 취약점 탐색 카드 */
+        /* 신규: 보호나라 공지 목록 스타일 */
+        .notice-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .notice-item {
+            font-size: 13px;
+            color: var(--text-primary);
+            background: rgba(15, 23, 42, 0.4);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.2s ease;
+        }
+
+        .notice-item:hover {
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+        }
+
+        /* CVE 탐색 카드 */
         .cve-archive-card {
-            border-left: 4px solid var(--accent-purple);
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -289,7 +312,7 @@
             gap: 12px;
             flex: 1;
             background: rgba(15, 23, 42, 0.4);
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 8px;
             border: 1px solid var(--card-border);
         }
@@ -297,7 +320,7 @@
         .cve-badge-code {
             font-size: 12px;
             font-weight: 700;
-            padding: 6px 12px;
+            padding: 4px 8px;
             border-radius: 6px;
             background: rgba(139, 92, 246, 0.2);
             color: #c084fc;
@@ -306,7 +329,7 @@
         }
 
         .cve-archive-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
             overflow: hidden;
@@ -394,12 +417,12 @@
 
             <ul class="news-list" id="new-cve-list">
                 <li style="color: var(--text-secondary); font-size:13px; padding:20px 0; text-align:center;">
-                    카테고리를 선택하면 해당 분야의 오늘 자 신규 뉴스를 확인하실 수 있습니다.
+                    카테고리를 선택하면 해당 분야의 최신 보안 뉴스를 확인하실 수 있습니다.
                 </li>
             </ul>
         </section>
 
-        <!-- 오른쪽 컬럼 (2단 구조) -->
+        <!-- 오른쪽 컬럼 (3단 구조) -->
         <div class="right-column">
 
             <!-- 1. 오늘의 보안 뷰포인트 -->
@@ -412,7 +435,20 @@
                 </div>
             </section>
 
-            <!-- 2. 무작위 취약점 탐색 (CVE 아카이브) -->
+            <!-- 2. 신규: KISA 보호나라 보안공지 (중간 위치) -->
+            <section class="card notice-card">
+                <div class="card-header">
+                    <h2 class="card-title" style="color: var(--accent-amber);">📢 KISA 보안 공지</h2>
+                    <span id="notice-date-badge" style="font-size: 11px; color: var(--text-secondary);">최신 게시일 조회 중</span>
+                </div>
+                <ul class="notice-list" id="bohonara-notice-list">
+                    <li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0;">
+                        보안 공지 수집 중입니다...
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 3. 무작위 취약점 탐색 (CVE 아카이브) -->
             <section class="card cve-archive-card" id="random-cve-box">
                 <div class="card-header">
                     <h2 class="card-title" style="color: #c084fc;">🔍 랜덤 취약점(CVE) 학습</h2>
@@ -461,7 +497,12 @@
                     document.getElementById('ciso-view-text').innerText = data.ciso_view;
                 }
 
-                // 2. 무작위 CVE
+                // 2. KISA 보호나라 공지사항 업데이트
+                if (data.latest_notices) {
+                    renderNotices(data.latest_notices);
+                }
+
+                // 3. 무작위 CVE
                 if (data.random_cve) {
                     randomCveData = data.random_cve;
                     document.getElementById('random-cve-title').innerText = data.random_cve.title;
@@ -474,7 +515,7 @@
                     }
                 }
 
-                // 3. 카테고리별 뉴스 캐시 및 화면 렌더링
+                // 4. 카테고리별 뉴스 캐시 및 화면 렌더링
                 if (data.news_by_category) {
                     globalNewsData = data.news_by_category;
                     if (currentSelectedCategory) {
@@ -486,6 +527,31 @@
                 console.error("인텔리전스 데이터 연동 실패:", error);
                 document.getElementById('ciso-view-text').innerText = "API 게이트웨이 연결 실패 (백엔드 서버 상태를 확인하세요)";
             }
+        }
+
+        // 보호나라 공지 목록 렌더링
+        function renderNotices(noticeData) {
+            const listEl = document.getElementById('bohonara-notice-list');
+            const badgeEl = document.getElementById('notice-date-badge');
+            listEl.innerHTML = '';
+
+            if (noticeData.target_date) {
+                badgeEl.innerText = `최신 게시일: ${noticeData.target_date}`;
+            }
+
+            if (!noticeData.list || noticeData.list.length === 0) {
+                listEl.innerHTML = `<li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0;">등록된 최신 보안 공지가 없습니다.</li>`;
+                return;
+            }
+
+            noticeData.list.forEach(n => {
+                const li = document.createElement('li');
+                li.className = 'notice-item';
+                li.title = n.title;
+                li.innerText = `• ${n.title}`;
+                li.onclick = () => window.open(n.link, '_blank');
+                listEl.appendChild(li);
+            });
         }
 
         // 카테고리 탭 선택 시 실행
@@ -512,7 +578,7 @@
             const newsList = globalNewsData[category] || [];
 
             if (newsList.length === 0) {
-                newsListEl.innerHTML = `<li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center;">오늘 [${category}] 카테고리로 등록된 신규 보안 뉴스가 없습니다.</li>`;
+                newsListEl.innerHTML = `<li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center;">[${category}] 카테고리로 등록된 보안 뉴스가 없습니다.</li>`;
                 return;
             }
 
@@ -552,7 +618,7 @@
             }
         }
 
-        // 초기 데이터 로드 (카테고리 선택 없는 기본 안내 상태)
+        // 초기 데이터 로드
         fetchDashboardData();
     </script>
 </body>

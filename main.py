@@ -153,10 +153,34 @@ def get_dashboard_data(
         db.query(SecurityVulnerability).order_by(func.random()).first()
     )
 
+    # 가장 최근에 등록된 공지사항 날짜 찾기
+    latest_notice = db.query(SecurityNotice).order_by(SecurityNotice.posted_date.desc()).first()
+    latest_notices = []
+    notice_date_str = ""
+
+    if latest_notice:
+        notice_date_str = latest_notice.posted_date
+        # 해당 최신 날짜에 등록된 모든 공지글 가져오기 (최대 5건)
+        items = (
+            db.query(SecurityNotice)
+            .filter(SecurityNotice.posted_date == notice_date_str)
+            .order_by(SecurityNotice.id.desc())
+            .limit(5)
+            .all()
+        )
+        latest_notices = [
+            {"id": n.id, "title": n.title, "link": n.link, "posted_date": n.posted_date}
+            for n in items
+        ]
+
     return {
         "selected_category": category,
         "ciso_view": ciso_view,
         "news_by_category": news_by_category,
+        "latest_notices": {
+            "target_date": notice_date_str,
+            "list": latest_notices
+        },
         "random_cve": (
             {
                 "id": random_vulnerability.id,

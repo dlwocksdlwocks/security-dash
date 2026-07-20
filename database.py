@@ -44,6 +44,19 @@ class SecurityNews(Base):
     published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+class SecurityNotice(Base):
+    """KISA 보호나라 보안공지 전용 테이블"""
+    __tablename__ = "security_notices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    link = Column(String(500), nullable=False, unique=True)
+    author = Column(String(100), default="KISA 보호나라")
+    content = Column(Text, nullable=True)
+    posted_date = Column(String(20), nullable=False)  # 예: "2026-07-20"
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+
 def init_db():
     Base.metadata.create_all(bind=engine)
 
