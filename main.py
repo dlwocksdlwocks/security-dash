@@ -29,13 +29,16 @@ scheduler.add_job(fetch_security_news, "interval", hours=12)
 # 스케줄러 시작 (12시간 주기로 반복)
 scheduler.start()
 
+from backfill_categories import run_backfill
+
 @app.on_event("startup")
 async def startup_event():
-
-    # 서버 시작 직후 1회 수집
+    # 백그라운드로 1회 실행
+    await asyncio.to_thread(run_backfill)
+    
+    # 서버 시작 직후 신규 크롤링 1회 수집
     asyncio.create_task(asyncio.to_thread(fetch_security_news))
 
-    
     
 
 # 프론트엔드 연동을 위한 CORS 설정
