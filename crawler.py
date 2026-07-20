@@ -209,10 +209,10 @@ def crawl_rss_source(db, name, url, default_author):
     except Exception as e:
         print(f"❌ [{name}] 피드 파싱 실패: {e}")
 
+
 def fetch_all_bohonara():
     """KISA 보호나라 과거 취약점 공지 전체 페이지를 순회하며 아카이브를 구축합니다."""
     print("🚀 [KISA 보호나라] 과거 취약점 공지 전체 수집 프로세스 가동 (분리형 DB + CVE 매핑)...")
-    db = SessionLocal()
     
     page = 1
     total_saved = 0
@@ -231,73 +231,87 @@ def fetch_all_bohonara():
                 print(f"🏁 {page}페이지에 게시글이 없습니다. 수집을 종료합니다.")
                 break
 
+            # 페이지마다 독립적인 DB 세션 사용
+            db = SessionLocal()
             page_saved_count = 0
-            for tr in post_items:
-                link_tag = tr.select_one("td.sbj.tal a")
-                if not link_tag:
-                    continue
-                    
-                title = link_tag.get_text(strip=True)
-                href = link_tag.get('href', '')
-                
-                parsed_url = urllib.parse.urlparse(href)
-                params = urllib.parse.parse_qs(parsed_url.query)
-                ntt_id = params.get('nttId', [None])[0]
-                
-                if not ntt_id and 'nttId=' in href:
-                    ntt_id = href.split('nttId=')[1].split('&')[0]
-                
-                if not ntt_id:
-                    continue
-
-                full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205023&bbsId=B0000302&nttId={ntt_id}"
-                
-                exists = db.query(SecurityVulnerability).filter(SecurityVulnerability.link.like(f"%nttId={ntt_id}%")).first()
-                if exists:
-                    print(f"⏭️ nttId {ntt_id}는 이미 DB에 존재하므로 패스합니다.")
-                    continue 
-
-                content_text = ""
-                try:
-                    detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
-                    detail_res.encoding = 'utf-8'
-                    detail_soup = BeautifulSoup(detail_res.text, 'html.parser')
-                    
-                    view_content = detail_soup.select_one(".bbs_view_container")
-                    content_text = view_content.get_text(strip=True)[:2500] if view_content else title
-                except Exception:
-                    content_text = title
-                
-                cve_code = extract_cve_code([title, content_text])
-                print(f"📰 새 취약점 발견 (nttId: {ntt_id}) [CVE: {cve_code}]: {title}")
-                
-                summary = summarize_with_chatgpt(title, content_text, "KISA 보호나라", "KISA 침해사고분석단")
-                
-                article = SecurityVulnerability(
-                    source="KISA 보호나라",
-                    author="KISA 침해사고분석단",
-                    title=title,
-                    link=full_link,
-                    content=content_text,
-                    summary=summary,
-                    cve_code=cve_code, 
-                    published_at=datetime.datetime.now(datetime.timezone.utc)
-                )
-                db.add(article)
-                page_saved_count += 1
-                total_saved += 1
-                
-                time.sleep(0.5)
-                
-            db.commit()
-            print(f"✅ {page}페이지 완료 (이번 페이지에서 {page_saved_count}건 저장됨)")
-            page += 1
             
+            try:
+                for tr in post_items:
+                    link_tag = tr.select_one("td.sbj.tal a")
+                    if not link_tag:
+                        continue
+                        
+                    title = link_tag.get_text(strip=True)
+                    href = link_tag.get('href', '')
+                    
+                    parsed_url = urllib.parse.urlparse(href)
+                    params = urllib.parse.parse_qs(parsed_url.query)
+                    ntt_id = params.get('nttId', [None])[0]
+                    
+                    if not ntt_id and 'nttId=' in href:
+                        ntt_id = href.split('nttId=')[1].split('&')[0]
+                    
+                    if not ntt_id:
+                        continue
+
+                    full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205023&bbsId=B0000302&nttId={ntt_id}"
+                    
+                    # 이미 수집된 건인지 검사
+                    exists = db.query(SecurityVulnerability).filter(
+                        SecurityVulnerability.link.like(f"%nttId={ntt_id}%")
+                    ).first()
+                    
+                    if exists:
+                        print(f"⏭️ nttId {ntt_id}는 이미 DB에 존재하므로 패스합니다.")
+                        continue 
+
+                    content_text = ""
+                    try:
+                        detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
+                        detail_res.encoding = 'utf-8'
+                        detail_soup = BeautifulSoup(detail_res.text, 'html.parser')
+                        
+                        view_content = detail_soup.select_one(".bbs_view_container")
+                        content_text = view_content.get_text(strip=True)[:2500] if view_content else title
+                    except Exception:
+                        content_text = title
+                    
+                    cve_code = extract_cve_code([title, content_text])
+                    print(f"📰 새 취약점 발견 (nttId: {ntt_id}) [CVE: {cve_code}]: {title}")
+                    
+                    summary = summarize_with_chatgpt(title, content_text, "KISA 보호나라", "KISA 침해사고분석단")
+                    
+                    article = SecurityVulnerability(
+                        source="KISA 보호나라",
+                        author="KISA 침해사고분석단",
+                        title=title,
+                        link=full_link,
+                        content=content_text,
+                        summary=summary,
+                        cve_code=cve_code, 
+                        published_at=datetime.datetime.now(datetime.timezone.utc)
+                    )
+                    db.add(article)
+                    page_saved_count += 1
+                    total_saved += 1
+                    
+                    time.sleep(1) # API/서버 매너 요청 간격 (1초)
+                    
+                db.commit()
+                print(f"✅ {page}페이지 완료 (이번 페이지에서 {page_saved_count}건 저장됨)")
+                page += 1
+                
+            except Exception as inner_e:
+                db.rollback()
+                print(f"❌ {page}페이지 DB 저장 중 에러 발생: {inner_e}")
+                break
+            finally:
+                db.close() # 페이지 작업이 끝날 때마다 안전하게 세션 닫기
+                
         except Exception as e:
-            print(f"❌ {page}페이지 크롤링 도중 에러 발생: {e}")
+            print(f"❌ {page}페이지 크롤링 도중 네트워크/파싱 에러 발생: {e}")
             break
             
-    db.close()
     print(f"\n🏁 수집 전면 완료! 총 {total_saved}건의 데이터가 security_vulnerabilities 테이블에 적재되었습니다.")
 
 def crawl_and_sync_all():
