@@ -15,6 +15,7 @@
             --accent-blue: #3b82f6;
             --accent-red: #ef4444;
             --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
         }
 
         * {
@@ -57,21 +58,17 @@
             gap: 10px;
             background: rgba(59, 130, 246, 0.1);
             border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 8px;
         }
 
-        .agent-avatar {
-            width: 32px;
-            height: 32px;
+        /* 4. jopani 이미지 적용 */
+        .agent-avatar-img {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background-color: var(--accent-blue);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            color: #fff;
+            object-fit: cover;
+            border: 1.5px solid var(--accent-blue);
         }
 
         .agent-info {
@@ -80,7 +77,7 @@
         }
 
         .agent-name {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--accent-blue);
             line-height: 1.2;
@@ -103,10 +100,10 @@
             font-weight: 500;
         }
 
-        /* 대시보드 메인 그리드 레이아웃 */
+        /* 대시보드 레이아웃 */
         .dashboard-container {
             display: grid;
-            grid-template-columns: 1.2fr 1fr; /* 왼쪽 메인 1.2 : 오른쪽 1 */
+            grid-template-columns: 1.15fr 1fr;
             gap: 20px;
             flex: 1;
         }
@@ -114,7 +111,7 @@
         .right-column {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         /* 카드 공통 스타일 */
@@ -122,7 +119,7 @@
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 14px;
-            padding: 24px;
+            padding: 20px 24px;
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
@@ -132,20 +129,20 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 18px;
-            padding-bottom: 12px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--card-border);
         }
 
         .card-title {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 700;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* 1. 왼쪽 메인: 금일 신규 보안 사고 (뉴스) */
+        /* 1. 왼쪽 메인: 뉴스 목록 */
         .news-section {
             height: 100%;
         }
@@ -202,73 +199,150 @@
             font-weight: 600;
             color: var(--text-primary);
             line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
         }
 
-        /* 2. 오른쪽 상단: 오늘의 보안 뷰포인트 */
+        /* 3. 오늘의 보안 뷰포인트 (크기 확충) */
         .ciso-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border-left: 4px solid var(--accent-blue);
-            flex: 1;
+            flex: 1.4; /* 상단 크기 확대 */
         }
 
         .ciso-box {
             background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.25);
             border-radius: 10px;
-            padding: 20px;
-            font-size: 15px;
-            line-height: 1.6;
-            color: #e2e8f0;
+            padding: 22px;
+            font-size: 16px; /* 폰트 키움 */
+            line-height: 1.75;
+            color: #f1f5f9;
             font-weight: 500;
             flex: 1;
             display: flex;
             align-items: center;
         }
 
-        /* 3. 오른쪽 하단: 금일 개인정보 유출 사례 브리핑 */
+        /* 1. 오늘의 랜덤 CVE 아카이브 (뷰포인트 아래에 신설) */
+        .cve-archive-card {
+            border-left: 4px solid var(--accent-purple);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 16px 20px;
+        }
+
+        .cve-archive-card:hover {
+            border-color: #a78bfa;
+            background-color: rgba(30, 41, 59, 0.95);
+        }
+
+        .cve-archive-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cve-badge-code {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(139, 92, 246, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            white-space: nowrap;
+        }
+
+        .cve-archive-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        /* 2. 금일 개인정보 유출 사례 브리핑 (세로 크기 축소) */
         .leak-card {
             border-left: 4px solid var(--accent-red);
-            flex: 1.2;
+            padding: 16px 20px;
         }
 
         .leak-content {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            flex: 1;
+            gap: 8px;
         }
 
         .leak-article-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--accent-amber);
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .leak-article-summary {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
-            line-height: 1.6;
+            line-height: 1.5;
             background: rgba(15, 23, 42, 0.5);
-            padding: 16px;
+            padding: 12px;
             border-radius: 8px;
             border: 1px solid var(--card-border);
-            flex: 1;
+        }
+
+        /* CVE 상세 모달 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 24px;
+            width: 90%;
+            max-width: 550px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 12px;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <!-- 상단 헤더 -->
+    <!-- 헤더 -->
     <header>
         <div class="header-title-group">
             <h1 class="main-title">정보보안센터 일일 보안 알람</h1>
             <div class="agent-logo-box">
-                <div class="agent-avatar">AI</div>
+                <!-- 4. jopani 이미지 경로 (파일명이 jopani.png 등 맞는지 확인하세요) -->
+                <img src="/static/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/36?text=JP'">
                 <div class="agent-info">
                     <span class="agent-name">NASA</span>
                     <span class="agent-sub">News AI Security Agent</span>
@@ -278,10 +352,10 @@
         <div class="system-time" id="current-time">시스템 시간: 계산 중...</div>
     </header>
 
-    <!-- 대시보드 메인 레이아웃 -->
+    <!-- 대시보드 레이아웃 -->
     <div class="dashboard-container">
 
-        <!-- 1. 왼쪽 메인: 금일 신규 보안 사고 (최신 뉴스 5개) -->
+        <!-- 왼쪽 메인: 뉴스 목록 -->
         <section class="card news-section">
             <div class="card-header">
                 <h2 class="card-title">🚨 금일 신규 보안 사고 동향</h2>
@@ -294,10 +368,10 @@
             </ul>
         </section>
 
-        <!-- 오른쪽 컬럼 (뷰포인트 + 유출 브리핑) -->
+        <!-- 오른쪽 컬럼 (3단 구조) -->
         <div class="right-column">
 
-            <!-- 2. 오른쪽 상단: 오늘의 보안 뷰포인트 -->
+            <!-- 1. 오늘의 보안 뷰포인트 (크기 확장) -->
             <section class="card ciso-card">
                 <div class="card-header">
                     <h2 class="card-title" style="color: var(--accent-blue);">💡 오늘의 보안 뷰포인트</h2>
@@ -307,10 +381,22 @@
                 </div>
             </section>
 
-            <!-- 3. 오른쪽 하단: 금일 개인정보 유출 사례 브리핑 -->
+            <!-- 2. 랜덤 CVE 아카이브 (위치 이동) -->
+            <section class="card cve-archive-card" id="random-cve-box">
+                <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
+                    <h2 class="card-title" style="color: #c084fc; font-size: 14px;">🔍 무작위 취약점(CVE) 탐색</h2>
+                    <span style="font-size: 11px; color: var(--text-secondary);">클릭 시 상세 브리핑</span>
+                </div>
+                <div class="cve-archive-body">
+                    <span class="cve-badge-code" id="random-cve-badge">CVE-CODE</span>
+                    <div class="cve-archive-title" id="random-cve-title">데이터를 불러오는 중...</div>
+                </div>
+            </section>
+
+            <!-- 3. 금일 개인정보 유출 사례 브리핑 (슬림화) -->
             <section class="card leak-card">
-                <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-red);">🛡️ 금일 개인정보 유출 사례 브리핑</h2>
+                <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
+                    <h2 class="card-title" style="color: var(--accent-red); font-size: 15px;">🛡️ 금일 개인정보 유출 사례 브리핑</h2>
                 </div>
                 <div class="leak-content">
                     <div class="leak-article-title" id="leak-title">유출 동향 분석 중...</div>
@@ -324,25 +410,40 @@
 
     </div>
 
+    <!-- CVE 상세 모달 -->
+    <div class="modal-overlay" id="cve-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title" style="font-size:16px; color:var(--text-primary);">취약점 상세 정보</h3>
+                <button class="modal-close-btn" id="modal-close">&times;</button>
+            </div>
+            <p id="modal-summary" style="font-size:14px; color:var(--text-secondary); line-height:1.6;"></p>
+            <div style="text-align: right; margin-top: 8px;">
+                <a id="modal-link" href="#" target="_blank" style="color: var(--accent-blue); font-size: 13px; text-decoration: none; font-weight: 600;">원문 공지 보기 &rarr;</a>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.getElementById('current-time').innerText = "시스템 시간: " + new Date().toLocaleString();
+
+        let randomCveData = null;
 
         async function fetchDashboardData() {
             try {
                 const response = await fetch('/api/dashboard');
                 const data = await response.json();
 
-                // 1. 오늘의 보안 뷰포인트 렌더링
+                // 1. 오늘의 보안 뷰포인트
                 document.getElementById('ciso-view-text').innerText = data.ciso_view;
 
-                // 2. 개인정보 유출 브리핑 렌더링
+                // 2. 개인정보 유출 사례
                 document.getElementById('leak-title').innerText = data.leak_section.title;
                 document.getElementById('leak-summary').innerText = data.leak_section.summary;
 
-                // 3. 왼쪽 메인: 금일 신규 보안 사고 뉴스 목록 렌더링
+                // 3. 최신 보안 뉴스 (왼쪽)
                 const newsListEl = document.getElementById('new-cve-list');
                 newsListEl.innerHTML = '';
-                
                 const newsList = data.latest_news || [];
 
                 if (newsList.length === 0) {
@@ -351,8 +452,6 @@
                     newsList.forEach(news => {
                         const li = document.createElement('li');
                         li.className = 'news-item';
-
-                        // 클릭 시 뉴스 원본 링크 이동
                         li.onclick = () => { if (news.link) window.open(news.link, '_blank'); };
 
                         li.innerHTML = `
@@ -366,9 +465,42 @@
                     });
                 }
 
+                // 4. 랜덤 CVE 아카이브
+                if (data.random_cve) {
+                    randomCveData = data.random_cve;
+                    document.getElementById('random-cve-title').innerText = data.random_cve.title;
+                    const badge = document.getElementById('random-cve-badge');
+                    if (data.random_cve.cve_code) {
+                        badge.innerText = data.random_cve.cve_code;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
             } catch (error) {
                 console.error("인텔리전스 데이터 연동 실패:", error);
                 document.getElementById('ciso-view-text').innerText = "API 게이트웨이 연결 실패 (백엔드 서버 상태를 확인하세요)";
+            }
+        }
+
+        // 모달 조작 이벤트
+        const modal = document.getElementById('cve-modal');
+        document.getElementById('random-cve-box').addEventListener('click', () => {
+            if (!randomCveData) return;
+            document.getElementById('modal-title').innerText = randomCveData.title;
+            document.getElementById('modal-summary').innerText = randomCveData.summary ? randomCveData.summary : "상세 기술 요약 아카이브가 존재하지 않습니다.";
+            document.getElementById('modal-link').href = randomCveData.link;
+            modal.style.display = 'flex';
+        });
+
+        document.getElementById('modal-close').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
             }
         }
 
