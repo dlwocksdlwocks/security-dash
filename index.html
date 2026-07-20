@@ -62,7 +62,6 @@
             border-radius: 8px;
         }
 
-        /* 4. jopani 이미지 적용 */
         .agent-avatar-img {
             width: 36px;
             height: 36px;
@@ -112,6 +111,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            height: 100%;
         }
 
         /* 카드 공통 스타일 */
@@ -119,23 +119,29 @@
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 14px;
-            padding: 20px 24px;
+            padding: 18px 22px;
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        /* 오른쪽 컬럼 카드 3개 세로 크기 동일하게(1:1:1) 강제 고정 */
+        .right-column .card {
+            flex: 1;
+            min-height: 0; /* flex 자식 오버플로우 방지 */
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 1px solid var(--card-border);
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -201,33 +207,37 @@
             line-height: 1.4;
         }
 
-        /* 3. 오늘의 보안 뷰포인트 (크기 확충) */
+        /* 오른쪽 1: 오늘의 보안 뷰포인트 */
         .ciso-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border-left: 4px solid var(--accent-blue);
-            flex: 1.4; /* 상단 크기 확대 */
         }
 
         .ciso-box {
             background: rgba(59, 130, 246, 0.08);
             border: 1px solid rgba(59, 130, 246, 0.25);
             border-radius: 10px;
-            padding: 22px;
-            font-size: 16px; /* 폰트 키움 */
-            line-height: 1.75;
-            color: #f1f5f9;
-            font-weight: 500;
+            padding: 16px;
             flex: 1;
             display: flex;
             align-items: center;
+            overflow-y: auto;
         }
 
-        /* 1. 오늘의 랜덤 CVE 아카이브 (뷰포인트 아래에 신설) */
+        /* 뷰포인트 메인 내용 글자 크기 확대 */
+        #ciso-view-text {
+            font-size: 20px;
+            line-height: 1.6;
+            color: #ffffff;
+            font-weight: 700;
+            word-break: keep-all;
+        }
+
+        /* 오른쪽 2: 무작위 취약점 탐색 카드 */
         .cve-archive-card {
             border-left: 4px solid var(--accent-purple);
             cursor: pointer;
             transition: all 0.2s ease;
-            padding: 16px 20px;
         }
 
         .cve-archive-card:hover {
@@ -237,15 +247,19 @@
 
         .cve-archive-body {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             gap: 12px;
+            flex: 1;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
         }
 
         .cve-badge-code {
             font-size: 12px;
             font-weight: 700;
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 6px;
             background: rgba(139, 92, 246, 0.2);
             color: #c084fc;
@@ -254,7 +268,7 @@
         }
 
         .cve-archive-title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--text-primary);
             overflow: hidden;
@@ -263,16 +277,17 @@
             flex: 1;
         }
 
-        /* 2. 금일 개인정보 유출 사례 브리핑 (세로 크기 축소) */
+        /* 오른쪽 3: 금일 개인정보 유출 사례 브리핑 */
         .leak-card {
             border-left: 4px solid var(--accent-red);
-            padding: 16px 20px;
         }
 
         .leak-content {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex: 1;
+            justify-content: center;
         }
 
         .leak-article-title {
@@ -290,6 +305,8 @@
             padding: 12px;
             border-radius: 8px;
             border: 1px solid var(--card-border);
+            overflow-y: auto;
+            max-height: 90px;
         }
 
         /* CVE 상세 모달 */
@@ -341,7 +358,6 @@
         <div class="header-title-group">
             <h1 class="main-title">정보보안센터 일일 보안 알람</h1>
             <div class="agent-logo-box">
-                <!-- 4. jopani 이미지 경로 (파일명이 jopani.png 등 맞는지 확인하세요) -->
                 <img src="/static/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/36?text=JP'">
                 <div class="agent-info">
                     <span class="agent-name">NASA</span>
@@ -359,7 +375,7 @@
         <section class="card news-section">
             <div class="card-header">
                 <h2 class="card-title">🚨 금일 신규 보안 사고 동향</h2>
-                <span style="font-size: 12px; color: var(--text-secondary);">실시간 수집 5건</span>
+                <span style="font-size: 12px; color: var(--text-secondary);">실시간 수집 피드</span>
             </div>
             <ul class="news-list" id="new-cve-list">
                 <li style="color: var(--text-secondary); font-size:13px; padding:20px 0; text-align:center;">
@@ -368,10 +384,10 @@
             </ul>
         </section>
 
-        <!-- 오른쪽 컬럼 (3단 구조) -->
+        <!-- 오른쪽 컬럼 (동일 높이 3단 구조) -->
         <div class="right-column">
 
-            <!-- 1. 오늘의 보안 뷰포인트 (크기 확장) -->
+            <!-- 1. 오늘의 보안 뷰포인트 -->
             <section class="card ciso-card">
                 <div class="card-header">
                     <h2 class="card-title" style="color: var(--accent-blue);">💡 오늘의 보안 뷰포인트</h2>
@@ -381,10 +397,10 @@
                 </div>
             </section>
 
-            <!-- 2. 랜덤 CVE 아카이브 (위치 이동) -->
+            <!-- 2. 무작위 취약점 탐색 (CVE 아카이브) -->
             <section class="card cve-archive-card" id="random-cve-box">
-                <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
-                    <h2 class="card-title" style="color: #c084fc; font-size: 14px;">🔍 무작위 취약점(CVE) 탐색</h2>
+                <div class="card-header">
+                    <h2 class="card-title" style="color: #c084fc;">🔍 무작위 취약점(CVE) 탐색</h2>
                     <span style="font-size: 11px; color: var(--text-secondary);">클릭 시 상세 브리핑</span>
                 </div>
                 <div class="cve-archive-body">
@@ -393,10 +409,10 @@
                 </div>
             </section>
 
-            <!-- 3. 금일 개인정보 유출 사례 브리핑 (슬림화) -->
+            <!-- 3. 금일 개인정보 유출 사례 브리핑 -->
             <section class="card leak-card">
-                <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
-                    <h2 class="card-title" style="color: var(--accent-red); font-size: 15px;">🛡️ 금일 개인정보 유출 사례 브리핑</h2>
+                <div class="card-header">
+                    <h2 class="card-title" style="color: var(--accent-red);">🛡️ 금일 개인정보 유출 사례 브리핑</h2>
                 </div>
                 <div class="leak-content">
                     <div class="leak-article-title" id="leak-title">유출 동향 분석 중...</div>
@@ -435,11 +451,15 @@
                 const data = await response.json();
 
                 // 1. 오늘의 보안 뷰포인트
-                document.getElementById('ciso-view-text').innerText = data.ciso_view;
+                if (data.ciso_view) {
+                    document.getElementById('ciso-view-text').innerText = data.ciso_view;
+                }
 
                 // 2. 개인정보 유출 사례
-                document.getElementById('leak-title').innerText = data.leak_section.title;
-                document.getElementById('leak-summary').innerText = data.leak_section.summary;
+                if (data.leak_section) {
+                    document.getElementById('leak-title').innerText = data.leak_section.title;
+                    document.getElementById('leak-summary').innerText = data.leak_section.summary;
+                }
 
                 // 3. 최신 보안 뉴스 (왼쪽)
                 const newsListEl = document.getElementById('new-cve-list');
