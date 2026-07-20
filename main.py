@@ -54,11 +54,10 @@ def get_db():
 
 def generate_ciso_view(category: str, news_list: list) -> str:
     """카테고리 선택 여부에 따른 동적 CISO 보안 뷰포인트 생성"""
-    # 💡 아무것도 선택하지 않았을 때의 기본 안내 문구
     if not category:
         return (
             "👋 안녕하세요! 정보보안센터 일일 보안 알람 대시보드입니다.\n"
-            "좌측 '금일 신규 보안 사고 동향'에서 카테고리(침해, 해킹, 개인정보, 기타보안)를 선택하시면 "
+            "좌측 '금일 신규 보안 이슈'에서 카테고리(침해, 해킹, 개인정보, 기타)를 선택하시면 "
             "해당 분야의 AI 맞춤형 보안 뷰포인트를 확인하실 수 있습니다."
         )
 
@@ -101,11 +100,11 @@ def get_dashboard_data(
     category: str = Query(None, description="선택된 카테고리 (침해, 해킹, 개인정보, 기타보안)"),
     db: Session = Depends(get_db),
 ):
-    today = datetime.date.today()  # 오늘 날짜 (YYYY-MM-DD)
+    today = datetime.date.today()
     categories = ["침해", "해킹", "개인정보", "기타보안"]
     news_by_category = {}
 
-    # 1. 4개 카테고리별 오늘 자 신규 뉴스만 엄격 수집 (없으면 빈 리스트)
+    # 1. 4개 카테고리별 오늘 자 신규 뉴스만 엄격 수집
     for cat in categories:
         items = (
             db.query(SecurityNews)
@@ -154,30 +153,10 @@ def get_dashboard_data(
         db.query(SecurityVulnerability).order_by(func.random()).first()
     )
 
-    # 4. 하단 개인정보 유출 사례 브리핑 (오늘 유출 기사만 엄격 추출)
-    privacy_news = (
-        db.query(SecurityNews)
-        .filter(
-            SecurityNews.category == "개인정보",
-            func.date(SecurityNews.created_at) == today,
-        )
-        .order_by(SecurityNews.id.desc())
-        .first()
-    )
-
-    leak_section = {
-        "title": privacy_news.title if privacy_news else "오늘 개인정보 유출 관련 동향 없음",
-        "summary": (
-            privacy_news.summary
-            if privacy_news and privacy_news.summary
-            else "금일 수집된 개인정보 및 데이터 유출 관련 신규 사고 기사가 없습니다."
-        ),
-    }
-
     return {
         "selected_category": category,
         "ciso_view": ciso_view,
-        "news_by_category": news_by_category,  # 오늘 자 카테고리별 뉴스 객체
+        "news_by_category": news_by_category,
         "random_cve": (
             {
                 "id": random_vulnerability.id,
@@ -205,7 +184,6 @@ def get_dashboard_data(
             if random_vulnerability
             else None
         ),
-        "leak_section": leak_section,
     }
 
 
