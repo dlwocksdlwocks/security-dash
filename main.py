@@ -10,7 +10,11 @@ from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 import asyncio
 # 💡 이 부분이 반드시 들어가야 합니다!
-from crawler import fetch_all_bohonara
+from crawler import fetch_security_news
+
+# 스케쥴러
+import asyncio
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
 
@@ -18,11 +22,21 @@ app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 
 init_db()
 
-# Render 서버가 켜질 때 백그라운드에서 전체 수집 실행
-# @app.on_event("startup")
-# async def startup_event():
-#     asyncio.create_task(asyncio.to_thread(fetch_all_bohonara))
+# 스케줄러 설정
+scheduler = BackgroundScheduler()
+# 12시간마다 뉴스 수집 함수 실행
+scheduler.add_job(fetch_security_news, "interval", hours=12)
+# 스케줄러 시작 (12시간 주기로 반복)
+scheduler.start()
 
+@app.on_event("startup")
+async def startup_event():
+
+    # 서버 시작 직후 1회 수집
+    asyncio.create_task(asyncio.to_thread(fetch_security_news))
+
+    
+    
 
 # 프론트엔드 연동을 위한 CORS 설정
 app.add_middleware(
