@@ -125,10 +125,9 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         }
 
-        /* 오른쪽 컬럼 카드 3개 세로 크기 동일하게(1:1:1) 강제 고정 */
         .right-column .card {
             flex: 1;
-            min-height: 0; /* flex 자식 오버플로우 방지 */
+            min-height: 0;
         }
 
         .card-header {
@@ -148,29 +147,62 @@
             gap: 8px;
         }
 
-        /* 1. 왼쪽 메인: 뉴스 목록 */
+        /* 1. 왼쪽 메인: 뉴스 섹션 및 탭 버튼 */
         .news-section {
             height: 100%;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        .tab-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue);
+            color: #60a5fa;
         }
 
         .news-list {
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             flex: 1;
+            overflow-y: auto;
+            max-height: 520px;
         }
 
         .news-item {
             background-color: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--card-border);
             border-radius: 10px;
-            padding: 16px;
+            padding: 12px 16px;
             transition: all 0.2s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .news-item:hover {
@@ -188,7 +220,7 @@
         .news-badge {
             font-size: 11px;
             font-weight: 600;
-            padding: 3px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
             background: rgba(16, 185, 129, 0.15);
             color: var(--accent-green);
@@ -196,12 +228,12 @@
         }
 
         .news-date {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
         }
 
         .news-item-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-primary);
             line-height: 1.4;
@@ -224,13 +256,13 @@
             overflow-y: auto;
         }
 
-        /* 뷰포인트 메인 내용 글자 크기 확대 */
         #ciso-view-text {
-            font-size: 20px;
+            font-size: 17px;
             line-height: 1.6;
             color: #ffffff;
             font-weight: 700;
             word-break: keep-all;
+            white-space: pre-line;
         }
 
         /* 오른쪽 2: 무작위 취약점 탐색 카드 */
@@ -268,7 +300,7 @@
         }
 
         .cve-archive-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-primary);
             overflow: hidden;
@@ -302,11 +334,11 @@
             color: var(--text-secondary);
             line-height: 1.5;
             background: rgba(15, 23, 42, 0.5);
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid var(--card-border);
             overflow-y: auto;
-            max-height: 90px;
+            max-height: 80px;
         }
 
         /* CVE 상세 모달 */
@@ -371,15 +403,24 @@
     <!-- 대시보드 레이아웃 -->
     <div class="dashboard-container">
 
-        <!-- 왼쪽 메인: 뉴스 목록 -->
+        <!-- 왼쪽 메인: 카테고리별 뉴스 목록 -->
         <section class="card news-section">
             <div class="card-header">
                 <h2 class="card-title">🚨 금일 신규 보안 사고 동향</h2>
-                <span style="font-size: 12px; color: var(--text-secondary);">실시간 수집 피드</span>
+                <span style="font-size: 12px; color: var(--text-secondary);">카테고리를 선택하세요</span>
             </div>
+
+            <!-- 카테고리 선택 탭 -->
+            <div class="category-tabs">
+                <button class="tab-btn" onclick="selectCategory('침해', this)">침해</button>
+                <button class="tab-btn" onclick="selectCategory('해킹', this)">해킹</button>
+                <button class="tab-btn" onclick="selectCategory('개인정보', this)">개인정보</button>
+                <button class="tab-btn" onclick="selectCategory('기타보안', this)">기타보안</button>
+            </div>
+
             <ul class="news-list" id="new-cve-list">
                 <li style="color: var(--text-secondary); font-size:13px; padding:20px 0; text-align:center;">
-                    보안 기사를 수집 및 분석하는 중입니다...
+                    카테고리를 선택하면 해당 분야의 오늘 자 신규 뉴스를 확인하실 수 있습니다.
                 </li>
             </ul>
         </section>
@@ -443,49 +484,29 @@
     <script>
         document.getElementById('current-time').innerText = "시스템 시간: " + new Date().toLocaleString();
 
+        let globalNewsData = {};
         let randomCveData = null;
+        let currentSelectedCategory = null;
 
-        async function fetchDashboardData() {
+        // 대시보드 종합 데이터 가져오기
+        async function fetchDashboardData(category = null) {
             try {
-                const response = await fetch('/api/dashboard');
+                const url = category ? `/api/dashboard?category=${encodeURIComponent(category)}` : '/api/dashboard';
+                const response = await fetch(url);
                 const data = await response.json();
 
-                // 1. 오늘의 보안 뷰포인트
+                // 1. CISO 뷰포인트 업데이트
                 if (data.ciso_view) {
                     document.getElementById('ciso-view-text').innerText = data.ciso_view;
                 }
 
-                // 2. 개인정보 유출 사례
+                // 2. 개인정보 유출 사례 브리핑
                 if (data.leak_section) {
                     document.getElementById('leak-title').innerText = data.leak_section.title;
                     document.getElementById('leak-summary').innerText = data.leak_section.summary;
                 }
 
-                // 3. 최신 보안 뉴스 (왼쪽)
-                const newsListEl = document.getElementById('new-cve-list');
-                newsListEl.innerHTML = '';
-                const newsList = data.latest_news || [];
-
-                if (newsList.length === 0) {
-                    newsListEl.innerHTML = '<li style="color: var(--text-secondary); font-size:13px; padding:20px 0; text-align:center;">최근 수집된 보안 뉴스가 없습니다.</li>';
-                } else {
-                    newsList.forEach(news => {
-                        const li = document.createElement('li');
-                        li.className = 'news-item';
-                        li.onclick = () => { if (news.link) window.open(news.link, '_blank'); };
-
-                        li.innerHTML = `
-                            <div class="news-header-meta">
-                                <span class="news-badge">${news.source ? news.source : '보안뉴스'}</span>
-                                <span class="news-date">${news.created_at}</span>
-                            </div>
-                            <div class="news-item-title" title="${news.title}">${news.title}</div>
-                        `;
-                        newsListEl.appendChild(li);
-                    });
-                }
-
-                // 4. 랜덤 CVE 아카이브
+                // 3. 무작위 CVE
                 if (data.random_cve) {
                     randomCveData = data.random_cve;
                     document.getElementById('random-cve-title').innerText = data.random_cve.title;
@@ -498,10 +519,62 @@
                     }
                 }
 
+                // 4. 카테고리별 뉴스 캐시 및 화면 렌더링
+                if (data.news_by_category) {
+                    globalNewsData = data.news_by_category;
+                    if (currentSelectedCategory) {
+                        renderNewsList(currentSelectedCategory);
+                    }
+                }
+
             } catch (error) {
                 console.error("인텔리전스 데이터 연동 실패:", error);
                 document.getElementById('ciso-view-text').innerText = "API 게이트웨이 연결 실패 (백엔드 서버 상태를 확인하세요)";
             }
+        }
+
+        // 카테고리 탭 선택 시 실행
+        function selectCategory(category, btnElement) {
+            currentSelectedCategory = category;
+
+            // 탭 스타일 활성화
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (btnElement) btnElement.classList.add('active');
+
+            // 뉴스 목록 렌더링
+            renderNewsList(category);
+
+            // 해당 카테고리에 맞는 동적 CISO 뷰포인트 백엔드 재요청
+            fetchDashboardData(category);
+        }
+
+        // 뉴스 목록 UI 렌더링
+        function renderNewsList(category) {
+            const newsListEl = document.getElementById('new-cve-list');
+            newsListEl.innerHTML = '';
+
+            const newsList = globalNewsData[category] || [];
+
+            if (newsList.length === 0) {
+                newsListEl.innerHTML = `<li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center;">오늘 [${category}] 카테고리로 등록된 신규 보안 뉴스가 없습니다.</li>`;
+                return;
+            }
+
+            newsList.forEach(news => {
+                const li = document.createElement('li');
+                li.className = 'news-item';
+                li.onclick = () => { if (news.link) window.open(news.link, '_blank'); };
+
+                li.innerHTML = `
+                    <div class="news-header-meta">
+                        <span class="news-badge">${news.source ? news.source : '보안뉴스'}</span>
+                        <span class="news-date">${news.created_at}</span>
+                    </div>
+                    <div class="news-item-title" title="${news.title}">${news.title}</div>
+                `;
+                newsListEl.appendChild(li);
+            });
         }
 
         // 모달 조작 이벤트
@@ -524,6 +597,7 @@
             }
         }
 
+        // 초기 데이터 로드 (카테고리 선택 없는 기본 안내 상태)
         fetchDashboardData();
     </script>
 </body>
