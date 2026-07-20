@@ -11,7 +11,7 @@ from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from crawler import fetch_security_news
+from crawler import fetch_security_news, crawl_and_sync_all
 from database import SecurityNews, SecurityVulnerability, SessionLocal, init_db
 
 load_dotenv()
@@ -22,14 +22,14 @@ init_db()
 
 # 스케줄러 설정 (12시간 주기로 반복)
 scheduler = BackgroundScheduler()
-scheduler.add_job(fetch_security_news, "interval", hours=12)
+scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
 scheduler.start()
 
 
 @app.on_event("startup")
 async def startup_event():
     # 서버 시작 직후 신규 크롤링 1회 수집
-    asyncio.create_task(asyncio.to_thread(fetch_security_news))
+    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
 
 
 # 프론트엔드 연동 CORS 설정
