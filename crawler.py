@@ -325,14 +325,29 @@ def crawl_and_sync_all():
     db.close()
     print("\n🏁 모든 카테고리 데이터 수집 및 종합 요약 저장 완료!")
 
+def fetch_security_news():
+    """main.py의 스케줄러에서 호출하는 보안 뉴스 수집 함수"""
+    print("🚀 [스케줄러] 정기 보안 뉴스 수집 프로세스 가동...")
+    db = SessionLocal()
+    try:
+        crawl_rss_source(
+            db,
+            "보안뉴스",
+            "https://www.boannews.com/media/rss.xml",
+            "보안뉴스 취재팀",
+        )
+        crawl_rss_source(
+            db,
+            "데일리시큐",
+            "https://www.dailysecu.com/rss/clickTop.xml",
+            "데일리시큐 취재기자",
+        )
+    finally:
+        db.close()
+    print("🏁 [스케줄러] 정기 보안 뉴스 수집 완료!")
 
 if __name__ == "__main__":
     init_db()
     
-    # 1. 처음 한 번만 돌릴 때: 백그라운드 쓰레드로 실행 (Render 타임아웃 우회용)
-    import threading
-    t = threading.Thread(target=fetch_all_bohonara)
-    t.start()
-    
     # 2. 나중에 평소에 돌릴 때 (과거 수집이 다 끝나면 위 3줄을 주석 처리하고 아래 주석을 푸세요)
-    # crawl_and_sync_all()
+    crawl_and_sync_all()
