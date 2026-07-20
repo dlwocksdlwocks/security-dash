@@ -495,34 +495,44 @@
 
         async function fetchDashboardData() {
             try {
-                // 💡 오타 수정 완료: /api/dashboaed -> /api/dashboard
                 const response = await fetch('/api/dashboard');
                 const data = await response.json();
 
                 document.getElementById('ciso-view-text').innerText = data.ciso_view;
-
                 document.getElementById('leak-title').innerText = data.leak_section.title;
                 document.getElementById('leak-summary').innerText = data.leak_section.summary;
 
-                const cveListEl = document.getElementById('new-cve-list');
-                cveListEl.innerHTML = '';
-                if(data.new_cves.length === 0) {
-                    cveListEl.innerHTML = '<li style="color: var(--text-secondary); font-size:13px; padding:10px 0;">금일 발견된 신규 취약점이 없습니다.</li>';
+                // 최신 보안 뉴스 렌더링
+                const newsListEl = document.getElementById('new-cve-list');
+                newsListEl.innerHTML = '';
+                
+                const newsList = data.latest_news || [];
+
+                if (newsList.length === 0) {
+                    newsListEl.innerHTML = '<li style="color: var(--text-secondary); font-size:13px; padding:10px 0;">최근 수집된 보안 뉴스가 없습니다.</li>';
                 } else {
-                    data.new_cves.forEach(cve => {
+                    newsList.forEach(news => {
                         const li = document.createElement('li');
                         li.className = 'cve-item';
+                        li.style.cursor = 'pointer';
+
+                        // 뉴스 원본 링크 개방
+                        li.onclick = () => { if (news.link) window.open(news.link, '_blank'); };
+
                         li.innerHTML = `
                             <div class="cve-header">
-                                <span class="cve-badge">${cve.cve_code ? cve.cve_code : 'KISA_경보'}</span>
-                                <span class="cve-date">${cve.created_at}</span>
+                                <span class="cve-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3);">
+                                    ${news.source ? news.source : '보안뉴스'}
+                                </span>
+                                <span class="cve-date">${news.created_at}</span>
                             </div>
-                            <div class="cve-title" title="${cve.title}">${cve.title}</div>
+                            <div class="cve-title" title="${news.title}">${news.title}</div>
                         `;
-                        cveListEl.appendChild(li);
+                        newsListEl.appendChild(li);
                     });
                 }
 
+                // 임의 취약점 아카이브 렌더링
                 if (data.random_cve) {
                     randomCveData = data.random_cve;
                     document.getElementById('random-cve-title').innerText = data.random_cve.title;
@@ -541,6 +551,7 @@
             }
         }
 
+        // 모달 관련 이벤트
         const modal = document.getElementById('cve-modal');
         document.getElementById('random-cve-box').addEventListener('click', () => {
             if (!randomCveData) return;

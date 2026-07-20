@@ -96,22 +96,26 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     gpt_analysis = analyze_news_with_gpt(recent_news)
     
     # 2. 오른쪽 첫번째: 신규 CVE (보호나라 최신 5건)
-    new_vulnerabilities = db.query(SecurityVulnerability).order_by(SecurityVulnerability.id.desc()).limit(5).all()
+    # new_vulnerabilities = db.query(SecurityVulnerability).order_by(SecurityVulnerability.id.desc()).limit(5).all()
     
     # 3. 오른쪽 두번째: 무작위 과거 CVE 1건 추출
     random_vulnerability = db.query(SecurityVulnerability).order_by(func.random()).first()
     
     return {
         "ciso_view": gpt_analysis.get("ciso_view"),
-        "new_cves": [
+        "latest_news": [
             {
-                "id": v.id,
-                "cve_code": v.cve_code,
-                "title": v.title,
-                "link": v.link,
-                "summary": v.summary,
-                "created_at": v.created_at.strftime("%Y-%m-%d") if v.created_at else ""
-            } for v in new_vulnerabilities
+                "id": news.id,
+                "title": news.title,
+                "source": getattr(news, "source", "보안뉴스"),
+                "link": news.link,
+                "created_at": (
+                    news.created_at.strftime("%Y-%m-%d")
+                    if hasattr(news, "created_at") and news.created_at
+                    else ""
+                ),
+            }
+            for news in recent_news
         ],
         "random_cve": {
             "id": random_vulnerability.id,
