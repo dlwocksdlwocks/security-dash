@@ -8,12 +8,21 @@ import json
 import os
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
+import asyncio
+# 💡 이 부분이 반드시 들어가야 합니다!
+from crawler import fetch_all_bohonara
 
 load_dotenv()
 
 app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 
 init_db()
+
+# Render 서버가 켜질 때 백그라운드에서 전체 수집 실행
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(asyncio.to_thread(fetch_all_bohonara))
+
 
 # 프론트엔드 연동을 위한 CORS 설정
 app.add_middleware(
