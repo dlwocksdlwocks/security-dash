@@ -19,9 +19,9 @@ app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 init_db()
 
 # Render 서버가 켜질 때 백그라운드에서 전체 수집 실행
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(asyncio.to_thread(fetch_all_bohonara))
+# @app.on_event("startup")
+# async def startup_event():
+#     asyncio.create_task(asyncio.to_thread(fetch_all_bohonara))
 
 
 # 프론트엔드 연동을 위한 CORS 설정
