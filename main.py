@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from crawler import fetch_security_news, crawl_and_sync_all
-from database import SecurityNews, SecurityVulnerability, SessionLocal, init_db
+from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
 
 load_dotenv()
 
