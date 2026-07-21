@@ -9,7 +9,14 @@ import feedparser
 from openai import OpenAI
 import requests
 
-from database import SecurityNews, SecurityVulnerability, SessionLocal, init_db
+# 💡 SecurityNotice 모델 import 추가
+from database import (
+    SecurityNews,
+    SecurityNotice,
+    SecurityVulnerability,
+    SessionLocal,
+    init_db,
+)
 
 load_dotenv()
 
@@ -41,7 +48,7 @@ def extract_cve_code(text_sources):
 
 
 def classify_category_with_chatgpt(title, content):
-    """💡 [신규 추가] 뉴스 기사의 제목과 내용을 바탕으로 4개 카테고리 중 하나로 분류합니다."""
+    """뉴스 기사의 제목과 내용을 바탕으로 4개 카테고리 중 하나로 분류합니다."""
     prompt = f"""
     당신은 정보보안센터의 보안 뉴스 분류 전문가입니다.
     아래 보안 뉴스 기사의 제목과 내용을 분석하여, 가장 적합한 카테고리 하나만 딱 골라 답하세요.
@@ -115,6 +122,71 @@ def summarize_with_chatgpt(title, content, source, author):
         return "요약 프로세스 일시적 제한"
 
 
+def crawl_bohonara_notice(db):
+    """KISA 보호나라 보안공지 게시판(B0000133)에서 최신 공지목록을 수집합니다."""
+    print("\n📡 [KISA 보호나라] 보안 공지 수집 중...")
+    list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205020&bbsId=B0000133"
+
+    try:
+        res = requests.get(list_url, headers=HEADERS, timeout=10)
+        res.encoding = "utf-8"
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        post_items = soup.select("div.tbl_responsive table tbody tr")
+        if not post_items:
+            post_items = soup.select("table tbody tr")
+
+        count = 0
+        for tr in post_items:
+            link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
+            if not link_tag:
+                continue
+
+            title = link_tag.get_text(strip=True)
+            href = link_tag.get("href", "")
+
+            parsed_url = urllib.parse.urlparse(href)
+            params = urllib.parse.parse_qs(parsed_url.query)
+            ntt_id = params.get("nttId", [None])[0]
+
+            if not ntt_id and "nttId=" in href:
+                ntt_id = href.split("nttId=")[1].split("&")[0]
+
+            if not ntt_id:
+                continue
+
+            full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205020&bbsId=B0000133&nttId={ntt_id}"
+
+            tds = tr.select("td")
+            posted_date = ""
+            for td in tds:
+                text = td.get_text(strip=True)
+                if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+                    posted_date = text
+                    break
+
+            if not posted_date:
+                posted_date = datetime.date.today().strftime("%Y-%m-%d")
+
+            exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
+            if exists:
+                continue
+
+            notice = SecurityNotice(
+                title=title,
+                link=full_link,
+                posted_date=posted_date
+            )
+            db.add(notice)
+            count += 1
+
+        db.commit()
+        print(f"✅ [보호나라 공지] 신규 공지 {count}건 저장 완료.")
+
+    except Exception as e:
+        print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
+
+
 def crawl_bohonara_vulnerability(db):
     """KISA 보호나라 취약점 게시판에서 새 공지 1건을 수집하여 SecurityVulnerability 테이블에 저장합니다."""
     print("\n📡 [KISA 보호나라] 취약점 정보 수집 중 (nttId 기준)...")
@@ -136,10 +208,7 @@ def crawl_bohonara_vulnerability(db):
             return
 
         for tr in post_items:
-            link_tag = tr.select_one("td.sbj.tal a")
-            if not link_tag:
-                link_tag = tr.select_one("td a")
-
+            link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
             if not link_tag:
                 continue
 
@@ -217,7 +286,7 @@ def crawl_bohonara_vulnerability(db):
 
 
 def crawl_rss_source(db, name, url, default_author):
-    """💡 [수정] 보안뉴스 및 데일리시큐 RSS 피드에서 각각 최신 10건을 수집하고 AI로 카테고리를 분류하여 저장합니다."""
+    """보안뉴스 및 데일리시큐 RSS 피드에서 각각 최신 10건을 수집하고 AI로 카테고리를 분류하여 저장합니다."""
     print(f"\n📡 [{name}] 신규 위협 피드 수집 중...")
     try:
         session = requests.Session()
@@ -304,27 +373,25 @@ def crawl_rss_source(db, name, url, default_author):
 
 
 def crawl_and_sync_all():
-    print(
-        "🚀 카테고리별 보안 데이터 수집 및 센터 공지 요약 프로세스 가동"
-        " (ChatGPT)..."
-    )
+    print("🚀 카테고리별 보안 데이터 수집 및 센터 공지 요약 프로세스 가동 (ChatGPT)...")
     db = SessionLocal()
-    crawl_bohonara_notice(db)
-    crawl_bohonara_vulnerability(db)
-    crawl_rss_source(
-        db,
-        "보안뉴스",
-        "https://www.boannews.com/media/news_rss.xml",  # 💡 올바른 URL로 수정
-        "보안뉴스 취재팀",
-    )
-    crawl_rss_source(
-        db,
-        "데일리시큐",
-        "https://www.dailysecu.com/rss/clickTop.xml",
-        "데일리시큐 취재기자",
-    )
-
-    db.close()
+    try:
+        crawl_bohonara_notice(db)
+        crawl_bohonara_vulnerability(db)
+        crawl_rss_source(
+            db,
+            "보안뉴스",
+            "https://www.boannews.com/media/news_rss.xml",
+            "보안뉴스 취재팀",
+        )
+        crawl_rss_source(
+            db,
+            "데일리시큐",
+            "https://www.dailysecu.com/rss/clickTop.xml",
+            "데일리시큐 취재기자",
+        )
+    finally:
+        db.close()
     print("\n🏁 모든 카테고리 데이터 수집 및 종합 요약 저장 완료!")
 
 
@@ -333,10 +400,11 @@ def fetch_security_news():
     print("🚀 [스케줄러] 정기 보안 뉴스 수집 프로세스 가동...")
     db = SessionLocal()
     try:
+        crawl_bohonara_notice(db)  # 💡 스케줄러 수집 함수에도 추가
         crawl_rss_source(
             db,
             "보안뉴스",
-            "https://www.boannews.com/media/news_rss.xml",  # 💡 올바른 URL로 수정
+            "https://www.boannews.com/media/news_rss.xml",
             "보안뉴스 취재팀",
         )
         crawl_rss_source(
@@ -348,75 +416,6 @@ def fetch_security_news():
     finally:
         db.close()
     print("🏁 [스케줄러] 정기 보안 뉴스 수집 완료!")
-
-def crawl_bohonara_notice(db):
-    """KISA 보호나라 보안공지 게시판(B0000133)에서 최신 공지목록을 수집합니다."""
-    print("\n📡 [KISA 보호나라] 보안 공지 수집 중...")
-    list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205020&bbsId=B0000133"
-
-    try:
-        res = requests.get(list_url, headers=HEADERS, timeout=10)
-        res.encoding = "utf-8"
-        soup = BeautifulSoup(res.text, "html.parser")
-
-        post_items = soup.select("div.tbl_responsive table tbody tr")
-        if not post_items:
-            post_items = soup.select("table tbody tr")
-
-        count = 0
-        for tr in post_items:
-            # 제목 및 링크 추출
-            link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
-            if not link_tag:
-                continue
-
-            title = link_tag.get_text(strip=True)
-            href = link_tag.get("href", "")
-
-            parsed_url = urllib.parse.urlparse(href)
-            params = urllib.parse.parse_qs(parsed_url.query)
-            ntt_id = params.get("nttId", [None])[0]
-
-            if not ntt_id and "nttId=" in href:
-                ntt_id = href.split("nttId=")[1].split("&")[0]
-
-            if not ntt_id:
-                continue
-
-            full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205020&bbsId=B0000133&nttId={ntt_id}"
-
-            # 게시일자 추출 (보통 4번째 또는 5번째 td)
-            tds = tr.select("td")
-            posted_date = ""
-            for td in tds:
-                text = td.get_text(strip=True)
-                if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
-                    posted_date = text
-                    break
-
-            if not posted_date:
-                posted_date = datetime.date.today().strftime("%Y-%m-%d")
-
-            # 중복 체크
-            exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
-            if exists:
-                continue
-
-            notice = SecurityNotice(
-                title=title,
-                link=full_link,
-                posted_date=posted_date
-            )
-            db.add(notice)
-            count += 1
-
-        db.commit()
-        print(f"✅ [보호나라 공지] 신규 공지 {count}건 저장 완료.")
-
-    except Exception as e:
-        print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
-
-# crawl_and_sync_all() 함수 내부 및 fetch_security_news() 내부에 crawl_bohonara_notice(db) 호출 추가
 
 
 if __name__ == "__main__":
