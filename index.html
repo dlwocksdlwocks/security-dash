@@ -141,7 +141,6 @@
             padding: 22px 24px;
             display: flex;
             flex-direction: column;
-            /* 💡 명확한 분리를 위한 또렷한 입체 그림자 */
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
             transition: all 0.25s ease;
             position: relative;
@@ -309,13 +308,14 @@
             white-space: pre-line;
         }
 
-        /* 7. KISA 보호나라 공지 목록 */
+        /* 7. KISA 보호나라 공지 목록 (가로 스크롤 방지 및 말줄임표 처리) */
         .notice-list {
             list-style: none;
             display: flex;
             flex-direction: column;
             gap: 8px;
             overflow-y: auto;
+            overflow-x: hidden;
             flex: 1;
         }
 
@@ -327,6 +327,7 @@
             border-radius: 12px;
             border: 2px solid #cbd5e1;
             cursor: pointer;
+            width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -494,6 +495,82 @@
         .modal-link-btn:hover {
             box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
             transform: translateY(-1px);
+        }
+
+        /* 📱 10. 모바일 반응형 미디어 쿼리 (768px 이하 스마트폰/태블릿) */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                gap: 14px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 14px 18px;
+            }
+
+            .header-title-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .main-title {
+                font-size: 18px;
+            }
+
+            .system-time {
+                width: 100%;
+                text-align: center;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+
+            .dashboard-container {
+                grid-template-columns: 1fr; /* 모바일에서는 1열 정렬 */
+                gap: 14px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 16px;
+            }
+
+            .category-tabs {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr); /* 탭 버튼 2x2 배치 */
+                gap: 8px;
+            }
+
+            .tab-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .news-list {
+                max-height: 380px;
+            }
+
+            .news-item {
+                padding: 12px;
+            }
+
+            .news-item-title {
+                font-size: 13px;
+            }
+
+            .right-column {
+                gap: 14px;
+            }
+
+            .ciso-box {
+                padding: 12px;
+            }
+
+            #ciso-view-text {
+                font-size: 13px;
+            }
         }
     </style>
 </head>
