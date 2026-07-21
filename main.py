@@ -62,7 +62,7 @@ def generate_ciso_view(category: str, news_list: list) -> str:
         )
 
     if not news_list:
-        return f"현재 [{category}] 카테고리에 오늘 수집된 신규 동향 뉴스가 없습니다. 인프라 기본 보안 정책을 유지하십시오."
+        return f"현재 [{category}] 카테고리에 오늘 수집된 신규 동향 뉴스가 없습니다."
 
     news_context = ""
     for idx, news in enumerate(news_list[:5]):
