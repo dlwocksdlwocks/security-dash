@@ -168,24 +168,29 @@ def crawl_bohonara_notice(db):
             if not posted_date:
                 posted_date = datetime.date.today().strftime("%Y-%m-%d")
 
+            # 💡 [핵심 수정] DB 조회 및 건별 commit 처리 (중복 충돌 및 세션 에러 방지)
             exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
             if exists:
                 continue
 
-            notice = SecurityNotice(
-                title=title,
-                link=full_link,
-                posted_date=posted_date
-            )
-            db.add(notice)
-            count += 1
+            try:
+                notice = SecurityNotice(
+                    title=title,
+                    link=full_link,
+                    posted_date=posted_date
+                )
+                db.add(notice)
+                db.commit()  # 💡 건별로 즉시 commit하여 세션 중복을 방지합니다.
+                count += 1
+            except Exception as e:
+                db.rollback()  # 💡 만약 개별 건에서 충돌 시 세션을 초기화하고 계속 진행합니다.
+                continue
 
-        db.commit()
         print(f"✅ [보호나라 공지] 신규 공지 {count}건 저장 완료.")
 
     except Exception as e:
+        db.rollback()
         print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
-
 
 def crawl_bohonara_vulnerability(db):
     """KISA 보호나라 취약점 게시판에서 새 공지 1건을 수집하여 SecurityVulnerability 테이블에 저장합니다."""

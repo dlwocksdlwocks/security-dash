@@ -11,7 +11,7 @@ from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from crawler import fetch_security_news, crawl_and_sync_all
+from crawler import crawl_and_sync_all
 from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
 
 load_dotenv()
