@@ -400,28 +400,6 @@ def crawl_and_sync_all():
     print("\n🏁 모든 카테고리 데이터 수집 및 종합 요약 저장 완료!")
 
 
-def fetch_security_news():
-    """main.py의 스케줄러에서 호출하는 보안 뉴스 수집 함수"""
-    print("🚀 [스케줄러] 정기 보안 뉴스 수집 프로세스 가동...")
-    db = SessionLocal()
-    try:
-        crawl_bohonara_notice(db)  # 💡 스케줄러 수집 함수에도 추가
-        crawl_rss_source(
-            db,
-            "보안뉴스",
-            "https://www.boannews.com/media/news_rss.xml",
-            "보안뉴스 취재팀",
-        )
-        crawl_rss_source(
-            db,
-            "데일리시큐",
-            "https://www.dailysecu.com/rss/clickTop.xml",
-            "데일리시큐 취재기자",
-        )
-    finally:
-        db.close()
-    print("🏁 [스케줄러] 정기 보안 뉴스 수집 완료!")
-
 
 if __name__ == "__main__":
     init_db()
