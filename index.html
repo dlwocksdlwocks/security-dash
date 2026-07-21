@@ -47,39 +47,54 @@
             gap: 20px;
         }
 
-        /* 1. 헤더 영역 */
+       /* 1. 헤더 영역 (소프트 블루-바이올렛 그래디언트 배너) */
         header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            background: var(--card-bg);
-            border: 2px solid var(--card-border);
-            padding: 18px 28px;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); /* 💡 화사하면서도 세련된 메인 블루 톤 */
+            border: 2px solid #312e81;
+            padding: 16px 28px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+            color: #ffffff;
         }
 
-        .header-title-group {
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 20px;
+            justify-content: flex-start;
+        }
+
+        .header-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
         }
 
         .main-title {
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: #0f172a;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .agent-logo-box {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #eff6ff;
-            border: 2px solid #93c5fd;
+            background: rgba(255, 255, 255, 0.18); /* 더 화사한 반투명 흰색 */
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
             padding: 6px 14px;
             border-radius: 12px;
+            backdrop-filter: blur(4px);
         }
 
         .agent-avatar-img {
@@ -87,7 +102,7 @@
             height: 34px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid var(--accent-blue);
+            border: 2px solid #ffffff;
         }
 
         .agent-info {
@@ -98,24 +113,25 @@
         .agent-name {
             font-size: 13px;
             font-weight: 800;
-            color: var(--accent-blue);
+            color: #ffffff;
             line-height: 1.2;
         }
 
         .agent-sub {
             font-size: 10px;
-            color: var(--text-secondary);
+            color: #e0e7ff;
             font-weight: 600;
         }
 
         .system-time {
             font-size: 13px;
-            color: var(--text-primary);
+            color: #ffffff;
             font-weight: 700;
-            background: var(--card-inner-bg);
+            background: rgba(255, 255, 255, 0.18);
             padding: 8px 14px;
             border-radius: 12px;
-            border: 2px solid var(--card-border);
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(4px);
         }
 
         /* 2. 대시보드 구조 */
@@ -583,7 +599,6 @@
             <div class="agent-logo-box">
                 <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/34?text=JP'">
                 <div class="agent-info">
-                    <span class="agent-name">bobo</span>
                     <span class="agent-sub">News AI Agent</span>
                 </div>
             </div>
