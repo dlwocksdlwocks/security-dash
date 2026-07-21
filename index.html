@@ -53,7 +53,7 @@
             justify-content: space-between;
             align-items: center;
             background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-            border: 2px solid var(--card-border); /* 💡 아래 카드들과 동일한 테두리 적용 */
+            border: 2px solid var(--card-border);
             padding: 16px 28px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
@@ -70,15 +70,18 @@
         .header-center { justify-content: center; }
         .header-right { justify-content: flex-end; }
 
+        /* 💡 메인 타이틀 40px, 700 굵기 적용 */
         .main-title {
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 1px;
+            font-size: 40px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
             color: #ffffff;
             white-space: nowrap;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            line-height: 1.1;
         }
 
+        /* 💡 에이전트 로고 박스 (클릭 가능 커서 & 인터랙션 효과) */
         .agent-logo-box {
             display: flex;
             align-items: center;
@@ -88,6 +91,19 @@
             padding: 6px 14px;
             border-radius: 12px;
             backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-logo-box:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .agent-logo-box:active {
+            transform: translateY(0) scale(0.98);
         }
 
         .agent-avatar-img {
@@ -427,7 +443,7 @@
             flex: 1;
         }
 
-        /* 9. CVE 상세 모달 */
+        /* 9. 모달 공통 스타일 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -526,7 +542,7 @@
             }
 
             .main-title {
-                font-size: 20px;
+                font-size: 24px; /* 모바일 대응 축소 */
             }
 
             .system-time {
@@ -587,9 +603,9 @@
 
     <!-- 헤더 (3분할 구조) -->
     <header>
-        <!-- 좌측: bobo AI 에이전트 -->
+        <!-- 좌측: bobo AI 에이전트 (클릭 시 소개 모달 열림) -->
         <div class="header-left">
-            <div class="agent-logo-box">
+            <div class="agent-logo-box" id="agent-intro-btn" title="AI 에이전트 안내 보기">
                 <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/34?text=JP'">
                 <div class="agent-info">
                     <span class="agent-name">bobo</span>
@@ -691,6 +707,30 @@
             <p id="modal-summary" style="font-size:14px; color:var(--text-secondary); line-height:1.6; font-weight: 600;"></p>
             <div style="text-align: right; margin-top: 8px;">
                 <a id="modal-link" class="modal-link-btn" href="#" target="_blank">원문 공지 보기 &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💡 신규: bobo AI 에이전트 소개 모달 -->
+    <div class="modal-overlay" id="agent-intro-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="/jopani.png" alt="jopani" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #2563eb;" onerror="this.src='https://via.placeholder.com/32?text=JP'">
+                    <h3 style="font-size:16px; color:var(--text-primary); font-weight: 800;">News AI Agent bobo 소개</h3>
+                </div>
+                <button class="modal-close-btn" id="agent-modal-close">&times;</button>
+            </div>
+            <div style="font-size:14px; color:var(--text-primary); line-height:1.6; display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size: 15px; font-weight: 700; color: #2563eb;">
+                    "안녕하세요! 보안 인텔리전스 AI 에이전트 bobo(보보)입니다. 🤖🛡️"
+                </p>
+                <p style="color: var(--text-secondary); font-weight: 600;">
+                    저는 매일 수집되는 최신 보안 뉴스와 KISA 보안 공지, 주요 취약점(CVE) 동향을 분석하여 보안 담당자 및 사용자분들이 한눈에 직관적으로 확인하실 수 있도록 정돈해 드립니다.
+                </p>
+                <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 12px; border-radius: 12px; font-size: 13px; color: #1e40af; font-weight: 600;">
+                    💡 <b>Tip:</b> 좌측 탭에서 카테고리를 클릭하면 AI가 실시간으로 분석한 맞춤형 CISO 뷰포인트를 함께 확인하실 수 있습니다!
+                </div>
             </div>
         </div>
     </div>
@@ -815,23 +855,37 @@
             });
         }
 
-        // 모달 조작 이벤트
-        const modal = document.getElementById('cve-modal');
+        // CVE 상세 모달 조작
+        const cveModal = document.getElementById('cve-modal');
         document.getElementById('random-cve-box').addEventListener('click', () => {
             if (!randomCveData) return;
             document.getElementById('modal-title').innerText = randomCveData.title;
             document.getElementById('modal-summary').innerText = randomCveData.summary ? randomCveData.summary : "상세 기술 요약 아카이브가 존재하지 않습니다.";
             document.getElementById('modal-link').href = randomCveData.link;
-            modal.style.display = 'flex';
+            cveModal.style.display = 'flex';
         });
 
         document.getElementById('modal-close').addEventListener('click', () => {
-            modal.style.display = 'none';
+            cveModal.style.display = 'none';
         });
 
+        // 💡 에이전트 소개 모달 조작
+        const agentIntroModal = document.getElementById('agent-intro-modal');
+        document.getElementById('agent-intro-btn').addEventListener('click', () => {
+            agentIntroModal.style.display = 'flex';
+        });
+
+        document.getElementById('agent-modal-close').addEventListener('click', () => {
+            agentIntroModal.style.display = 'none';
+        });
+
+        // 바깥 바탕 클릭 시 모달 닫기
         window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = 'none';
+            if (event.target == cveModal) {
+                cveModal.style.display = 'none';
+            }
+            if (event.target == agentIntroModal) {
+                agentIntroModal.style.display = 'none';
             }
         }
 
