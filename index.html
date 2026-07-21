@@ -6,16 +6,25 @@
     <title>정보보안센터 일일 보안 알람 - NASA</title>
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --card-border: #334155;
+            /* 메인 컬러 팔레트 (소프트 & 하이테크 드라이브) */
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.7);
+            --card-inner-bg: rgba(15, 23, 42, 0.55);
+            --card-border: rgba(255, 255, 255, 0.08);
+            
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
+            
+            /* 그래디언트 Accent 컬러 */
             --accent-green: #10b981;
             --accent-blue: #3b82f6;
-            --accent-red: #ef4444;
             --accent-amber: #f59e0b;
             --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            
+            --grad-blue: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --grad-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --grad-amber: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         }
 
         * {
@@ -27,6 +36,9 @@
 
         body {
             background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
             color: var(--text-primary);
             min-height: 100vh;
             padding: 24px;
@@ -35,39 +47,51 @@
             gap: 20px;
         }
 
-        /* 헤더 영역 */
+        /* 1. 헤더 영역 */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: var(--card-bg);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--card-border);
-            padding: 16px 24px;
-            border-radius: 12px;
+            padding: 18px 28px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
         }
 
         .header-title-group {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
+        }
+
+        .main-title {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .agent-logo-box {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(59, 130, 246, 0.1);
+            background: rgba(59, 130, 246, 0.12);
             border: 1px solid rgba(59, 130, 246, 0.3);
             padding: 6px 14px;
-            border-radius: 8px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
         }
 
         .agent-avatar-img {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1.5px solid var(--accent-blue);
+            border: 2px solid var(--accent-blue);
         }
 
         .agent-info {
@@ -76,9 +100,9 @@
         }
 
         .agent-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
-            color: var(--accent-blue);
+            color: #60a5fa;
             line-height: 1.2;
         }
 
@@ -87,19 +111,17 @@
             color: var(--text-secondary);
         }
 
-        .main-title {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
         .system-time {
             font-size: 13px;
             color: var(--text-secondary);
-            font-weight: 500;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
         }
 
-        /* 대시보드 레이아웃 */
+        /* 2. 대시보드 구조 */
         .dashboard-container {
             display: grid;
             grid-template-columns: 1.15fr 1fr;
@@ -110,35 +132,56 @@
         .right-column {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
             height: 100%;
         }
 
-        /* 카드 공통 스타일 */
+        /* 3. 카드 공통 컴포넌트 */
         .card {
-            background-color: var(--card-bg);
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 18px 22px;
+            border-radius: 22px;
+            padding: 22px 24px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
 
         .right-column .card {
             min-height: 0;
         }
 
-        .right-column .ciso-card { flex: 1.2; }
-        .right-column .notice-card { flex: 1.5; border-left: 4px solid var(--accent-amber); }
-        .right-column .cve-archive-card { flex: 0.8; border-left: 4px solid var(--accent-purple); }
+        /* 개별 카드 특화 호버 및 비주얼 효과 */
+        .right-column .ciso-card { 
+            flex: 1.2; 
+            border-left: 5px solid var(--accent-blue);
+        }
+        
+        .right-column .notice-card { 
+            flex: 1.5; 
+            border-left: 5px solid var(--accent-amber);
+        }
+        
+        .right-column .cve-archive-card { 
+            flex: 0.8; 
+            border-left: 5px solid var(--accent-purple);
+        }
+
+        .card:hover {
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.03);
+            transform: translateY(-2px);
+        }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--card-border);
         }
 
@@ -150,40 +193,44 @@
             gap: 8px;
         }
 
-        /* 뉴스 섹션 및 탭 버튼 */
+        /* 4. 카테고리 탭 버튼 */
         .news-section { height: 100%; }
 
         .category-tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 16px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 8px 12px;
-            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 14px;
+            background: var(--card-inner-bg);
             border: 1px solid var(--card-border);
             color: var(--text-secondary);
-            border-radius: 8px;
+            border-radius: 14px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             text-align: center;
         }
 
         .tab-btn:hover {
             color: var(--text-primary);
-            border-color: var(--accent-blue);
+            border-color: rgba(59, 130, 246, 0.5);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
         }
 
         .tab-btn.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-color: var(--accent-blue);
-            color: #60a5fa;
+            background: var(--grad-blue);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
         }
 
+        /* 5. 뉴스 리스트 */
         .news-list {
             list-style: none;
             display: flex;
@@ -192,24 +239,26 @@
             flex: 1;
             overflow-y: auto;
             max-height: 520px;
+            padding-right: 4px;
         }
 
         .news-item {
-            background-color: rgba(15, 23, 42, 0.6);
+            background: var(--card-inner-bg);
             border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 12px 16px;
-            transition: all 0.2s ease;
+            border-radius: 16px;
+            padding: 14px 18px;
+            transition: all 0.25s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .news-item:hover {
-            border-color: var(--accent-blue);
-            transform: translateY(-2px);
-            background-color: rgba(30, 41, 59, 0.9);
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateX(4px);
+            background: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
         .news-header-meta {
@@ -220,9 +269,9 @@
 
         .news-badge {
             font-size: 11px;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 8px;
             background: rgba(16, 185, 129, 0.15);
             color: var(--accent-green);
             border: 1px solid rgba(16, 185, 129, 0.3);
@@ -240,17 +289,12 @@
             line-height: 1.4;
         }
 
-        /* CISO 카드 */
-        .ciso-card {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border-left: 4px solid var(--accent-blue);
-        }
-
+        /* 6. CISO 카드 내부 */
         .ciso-box {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            border-radius: 10px;
-            padding: 14px;
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 16px;
             flex: 1;
             display: flex;
             align-items: center;
@@ -259,14 +303,14 @@
 
         #ciso-view-text {
             font-size: 15px;
-            line-height: 1.5;
+            line-height: 1.6;
             color: #ffffff;
             font-weight: 600;
             word-break: keep-all;
             white-space: pre-line;
         }
 
-        /* 신규: 보호나라 공지 목록 스타일 */
+        /* 7. KISA 보호나라 공지 목록 */
         .notice-list {
             list-style: none;
             display: flex;
@@ -279,9 +323,9 @@
         .notice-item {
             font-size: 13px;
             color: var(--text-primary);
-            background: rgba(15, 23, 42, 0.4);
-            padding: 8px 12px;
-            border-radius: 6px;
+            background: var(--card-inner-bg);
+            padding: 10px 14px;
+            border-radius: 12px;
             border: 1px solid var(--card-border);
             cursor: pointer;
             white-space: nowrap;
@@ -291,53 +335,47 @@
         }
 
         .notice-item:hover {
-            border-color: var(--accent-amber);
-            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.6);
+            color: #fbbf24;
+            transform: translateX(3px);
+            background: rgba(245, 158, 11, 0.08);
         }
 
+        /* 보호나라 바로가기 버튼 */
         .notice-more-btn {
-            margin-top: 10px;
+            margin-top: 12px;
             width: 100%;
-            padding: 10px 16px;
+            padding: 12px;
             background: rgba(245, 158, 11, 0.1);
             border: 1px solid rgba(245, 158, 11, 0.3);
-            color: var(--accent-amber);
+            color: #fbbf24;
             font-size: 13px;
             font-weight: 700;
-            border-radius: 8px;
+            border-radius: 14px;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            gap: 8px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             outline: none;
         }
 
-        /* 마우스 호버 효과 */
         .notice-more-btn:hover {
-            background: rgba(245, 158, 11, 0.25);
-            border-color: var(--accent-amber);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
-            transform: translateY(-1px);
+            background: var(--grad-amber);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+            transform: translateY(-2px);
         }
 
-        /* 클릭(Active) 시 누르는 반응 애니메이션 */
         .notice-more-btn:active {
-            transform: translateY(1px) scale(0.98);
-            background: rgba(245, 158, 11, 0.35);
+            transform: translateY(0) scale(0.98);
         }
 
-
-        /* CVE 탐색 카드 */
+        /* 8. 데일리 CVE 카드 */
         .cve-archive-card {
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .cve-archive-card:hover {
-            border-color: #a78bfa;
-            background-color: rgba(30, 41, 59, 0.95);
         }
 
         .cve-archive-body {
@@ -345,18 +383,24 @@
             align-items: center;
             gap: 12px;
             flex: 1;
-            background: rgba(15, 23, 42, 0.4);
-            padding: 10px 14px;
-            border-radius: 8px;
+            background: var(--card-inner-bg);
+            padding: 12px 16px;
+            border-radius: 14px;
             border: 1px solid var(--card-border);
+            transition: all 0.25s ease;
+        }
+
+        .cve-archive-card:hover .cve-archive-body {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.1);
         }
 
         .cve-badge-code {
             font-size: 12px;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 6px;
-            background: rgba(139, 92, 246, 0.2);
+            font-weight: 800;
+            padding: 5px 10px;
+            border-radius: 10px;
+            background: rgba(139, 92, 246, 0.25);
             color: #c084fc;
             border: 1px solid rgba(139, 92, 246, 0.4);
             white-space: nowrap;
@@ -372,29 +416,35 @@
             flex: 1;
         }
 
-        /* CVE 상세 모달 */
+        /* 9. CVE 상세 모달 */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
         .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 24px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 22px;
+            padding: 28px;
             width: 90%;
             max-width: 550px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            gap: 18px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            animation: modalFadeIn 0.25s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .modal-header {
@@ -402,15 +452,46 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--card-border);
-            padding-bottom: 12px;
+            padding-bottom: 14px;
         }
 
         .modal-close-btn {
-            background: none;
-            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
             color: var(--text-secondary);
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .modal-link-btn {
+            display: inline-block;
+            padding: 10px 18px;
+            background: var(--grad-blue);
+            color: #ffffff;
+            font-size: 13px;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: all 0.2s;
+        }
+
+        .modal-link-btn:hover {
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.5);
+            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -421,7 +502,7 @@
         <div class="header-title-group">
             <h1 class="main-title">DAILY SECURITY NEWS</h1>
             <div class="agent-logo-box">
-                <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/36?text=JP'">
+                <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/34?text=JP'">
                 <div class="agent-info">
                     <span class="agent-name">bobo</span>
                     <span class="agent-sub">News AI Agent</span>
@@ -450,7 +531,7 @@
             </div>
 
             <ul class="news-list" id="new-cve-list">
-                <li style="color: var(--text-secondary); font-size:13px; padding:20px 0; text-align:center;">
+                <li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center;">
                     카테고리를 선택하면 해당 분야의 최신 보안 뉴스를 확인하실 수 있습니다.
                 </li>
             </ul>
@@ -462,17 +543,17 @@
             <!-- 1. 오늘의 보안 뷰포인트 -->
             <section class="card ciso-card">
                 <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-blue);">💡 오늘의 보안 뷰포인트</h2>
+                    <h2 class="card-title" style="color: #60a5fa;">💡 오늘의 보안 뷰포인트</h2>
                 </div>
                 <div class="ciso-box">
                     <p id="ciso-view-text">CISO 종합 분석 데이터를 로딩 중입니다...</p>
                 </div>
             </section>
 
-            <!-- 2. 신규: KISA 보호나라 보안공지 (중간 위치) -->
+            <!-- 2. KISA 보호나라 보안공지 -->
             <section class="card notice-card">
                 <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-amber);">📢 KISA 보안 공지</h2>
+                    <h2 class="card-title" style="color: #fbbf24;">📢 KISA 보안 공지</h2>
                     <span id="notice-date-badge" style="font-size: 11px; color: var(--text-secondary);">최신 게시일 조회 중</span>
                 </div>
                 <ul class="notice-list" id="bohonara-notice-list">
@@ -512,7 +593,7 @@
             </div>
             <p id="modal-summary" style="font-size:14px; color:var(--text-secondary); line-height:1.6;"></p>
             <div style="text-align: right; margin-top: 8px;">
-                <a id="modal-link" href="#" target="_blank" style="color: var(--accent-blue); font-size: 13px; text-decoration: none; font-weight: 600;">원문 공지 보기 &rarr;</a>
+                <a id="modal-link" class="modal-link-btn" href="#" target="_blank">원문 공지 보기 &rarr;</a>
             </div>
         </div>
     </div>
