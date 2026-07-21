@@ -142,11 +142,12 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding: 6px 12px;
+            padding: 0;                   /* 💡 로고가 커졌으므로 용기 여백을 줄여 넘침 방지 */
+            max-height: 120px;
         }
 
         .komsco-logo-img {
-            height: 55px; /* 💡 38px -> 55px로 두 배 가깝게 확대 */
+            height: 120px; /* 💡 38px -> 55px로 두 배 가깝게 확대 */
             width: auto;
             object-fit: contain;
         }
@@ -657,7 +658,7 @@
             <!-- 1. 오늘의 보안 뷰포인트 -->
             <section class="card ciso-card">
                 <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-blue);">💡 오늘의 보안 뷰포인트</h2>
+                    <h2 class="card-title" style="color: var(--accent-blue);">💡 카테고리별 보안 이슈 요약</h2>
                 </div>
                 <div class="ciso-box">
                     <p id="ciso-view-text">CISO 종합 분석 데이터를 로딩 중입니다...</p>

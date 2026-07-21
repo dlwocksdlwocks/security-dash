@@ -53,7 +53,7 @@ def get_db():
 
 
 def generate_ciso_view(category: str, news_list: list) -> str:
-    """카테고리 선택 여부에 따른 동적 CISO 보안 뷰포인트 생성"""
+    """카테고리 선택 시 최신 뉴스 본문 기반 [서론-본론-결론] CISO 뷰포인트 생성"""
     if not category:
         return (
             "👋 안녕하세요! 정보보안센터 일일 보안 알람 대시보드입니다.\n"
@@ -64,26 +64,40 @@ def generate_ciso_view(category: str, news_list: list) -> str:
     if not news_list:
         return f"현재 [{category}] 카테고리에 오늘 수집된 신규 동향 뉴스가 없습니다."
 
+    # 💡 뉴스 제목뿐만 아니라 주요 본문 요약(summary)까지 학습 문맥에 포함
     news_context = ""
     for idx, news in enumerate(news_list[:5]):
-        news_context += f"[{idx+1}] {news.title}\n"
+        title = news.title
+        # DB의 summary나 content 활용
+        summary = news.summary if hasattr(news, 'summary') and news.summary else getattr(news, 'content', '')[:150]
+        news_context += f"[{idx+1}] 제목: {title}\n    내용: {summary}\n\n"
 
-    prompt = (
-        f"너는 정보보안센터의 CISO이자 최상위 자산 분석가야. 아래는 오늘 수집된 [{category}] 카테고리 관련 최신 뉴스 목록이야.\n\n"
-        f"{news_context}\n"
-        f"요구사항:\n"
-        f"1. 이 [{category}] 이슈들과 관련해 오늘 우리 보안팀이 가장 집중해야 할 핵심 보안 조치 사항을 40자 내외의 아주 기술적이고 강력한 명령어 형태로 작성해줘.\n"
-        f"2. 특정 회사 이름은 언급하지 마.\n"
-        f"3. 반드시 DB, OS, Web, 단말, 네트워크 중 하나를 짚어서 기술적 관점으로 작성해줘. (예: 'DB/Web 서버 최신 보안 패치 적용 및 취약 포트 차단 조치 요망')"
-    )
+    prompt = f"""
+    너는 정보보안센터의 CISO이자 최상위 자산 분석가야.
+    아래는 오늘 수집된 [{category}] 카테고리 관련 최신 뉴스 및 위협 동향 본문 데이터야.
+
+    {news_context}
+
+    [요구사항]
+    위 뉴스 내용 전체를 종합 분석하여, 우리 보안팀과 센터장님께 보고할 [서론-본론-결론] 형태의 보안 뷰포인트를 작성해줘.
+
+    [작성 규칙]
+    1. 서론: 금일 [{category}] 관련 주요 위협 흐름 및 배경 요약 (1문장)
+    2. 본문: 기술적 핵심 위협 요소 및 대상(DB, OS, Web, 단말, 네트워크 중 선택) 지정 (1문장)
+    3. 결론: 오늘 우리 보안팀이 즉시 수행해야 할 강력하고 구체적인 대응 지침 (1문장)
+    4. 특정 회사 이름은 언급하지 말고, '서론:', '본론:', '결론:' 같은 머리말 표기 없이 자연스러운 3문장(한 단락)으로 연결해서 작성해줘.
+    """
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini",  # 💡 기존 모델(gpt-4o-mini) 그대로 유지
             messages=[
                 {
                     "role": "system",
-                    "content": "너는 보안 분석 전문가이며 40자 이내의 명확한 보안 조치 명령을 반환해.",
+                    "content": (
+                        "너는 정보보안센터의 CISO야. 수집된 보안 뉴스의 본문 문맥을 종합 분석하여 "
+                        "서론(동향)-본론(기술위협)-결론(대응지침) 구조의 명확한 3문장 종합 보고서를 작성해."
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -93,7 +107,6 @@ def generate_ciso_view(category: str, news_list: list) -> str:
     except Exception as e:
         print(f"❌ CISO 뷰포인트 생성 실패: {e}")
         return f"[{category}] 관련 주요 시스템 접근제어 정책 및 취약점 패치 현황 점검 요망"
-
 
 @app.get("/api/dashboard")
 def get_dashboard_data(
