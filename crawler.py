@@ -309,7 +309,7 @@ def crawl_and_sync_all():
         " (ChatGPT)..."
     )
     db = SessionLocal()
-
+    crawl_bohonara_notice(db)
     crawl_bohonara_vulnerability(db)
     crawl_rss_source(
         db,
@@ -417,7 +417,6 @@ def crawl_bohonara_notice(db):
         print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
 
 # crawl_and_sync_all() 함수 내부 및 fetch_security_news() 내부에 crawl_bohonara_notice(db) 호출 추가
-
 
 
 if __name__ == "__main__":
