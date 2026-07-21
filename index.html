@@ -295,6 +295,40 @@
             color: var(--accent-amber);
         }
 
+        .notice-more-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 10px 16px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--accent-amber);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+        }
+
+        /* 마우스 호버 효과 */
+        .notice-more-btn:hover {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: var(--accent-amber);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* 클릭(Active) 시 누르는 반응 애니메이션 */
+        .notice-more-btn:active {
+            transform: translateY(1px) scale(0.98);
+            background: rgba(245, 158, 11, 0.35);
+        }
+
+
         /* CVE 탐색 카드 */
         .cve-archive-card {
             cursor: pointer;
@@ -446,6 +480,11 @@
                         보안 공지 수집 중입니다...
                     </li>
                 </ul>
+
+                <button class="notice-more-btn" onclick="window.open('https://www.boho.or.kr/kr/bbs/list.do?menuNo=205020&bbsId=B0000133', '_blank')">
+                    <span>보호나라 게시판 바로가기</span>
+                    <span style="font-size: 14px;">&rarr;</span>
+                </button>
             </section>
 
             <!-- 3. 무작위 취약점 탐색 (CVE 아카이브) -->

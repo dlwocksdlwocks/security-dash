@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-
+import random
 from crawler import crawl_and_sync_all
 from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
 
@@ -149,9 +149,14 @@ def get_dashboard_data(
     ciso_view = generate_ciso_view(category, selected_news)
 
     # 3. 무작위 CVE 1건 추출
-    random_vulnerability = (
-        db.query(SecurityVulnerability).order_by(func.random()).first()
-    )
+    vulnerabilities = db.query(SecurityVulnerability).all()
+    random_vulnerability = None
+
+    if vulnerabilities:
+        # 오늘 날짜(예: 20260721)를 시드(Seed)값으로 설정하여 하루 동안 고정
+        date_seed = int(today.strftime("%Y%m%d"))
+        rnd = random.Random(date_seed)
+        random_vulnerability = rnd.choice(vulnerabilities)
 
     # 가장 최근에 등록된 공지사항 날짜 찾기
     latest_notice = db.query(SecurityNotice).order_by(SecurityNotice.posted_date.desc()).first()
