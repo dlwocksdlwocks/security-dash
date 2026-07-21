@@ -6,28 +6,26 @@
     <title>정보보안센터 일일 보안 알람 - NASA</title>
     <style>
         :root {
-            /* 라이트 테마 컬러 팔레트 (고대비 경계 강조) */
-            --bg-light: #e2e8f0;
-            --bg-accent-grad: linear-gradient(135deg, #cbd5e1 0%, #e2e8f0 50%, #e0e7ff 100%);
+            /* 💡 대비 강화 라이트 테마 팔레트 */
+            --bg-light: #dbe2ef;
+            --bg-accent-grad: linear-gradient(135deg, #c7d2fe 0%, #dbe2ef 50%, #e2e8f0 100%);
             --card-bg: #ffffff;
             --card-inner-bg: #f1f5f9;
             
-            /* 명확한 경계를 위한 테두리 색상 */
-            --card-border: #94a3b8;          /* 카드 기본 테두리 (1.5px) */
-            --item-border: #cbd5e1;          /* 내부 아이템/버튼 기본 테두리 */
-            --item-border-hover: #3b82f6;    /* 마우스 호버 시 강조 테두리 */
+            /* 또렷한 명조 경계선 */
+            --card-border: #94a3b8;          /* 카드 테두리 */
+            --item-border: #cbd5e1;          /* 내부 아이템/버튼 테두리 */
             
             --text-primary: #0f172a;
             --text-secondary: #475569;
             
-            /* 그래디언트 및 Accent 컬러 */
+            /* Accent 컬러 */
             --accent-green: #059669;
             --accent-blue: #2563eb;
             --accent-amber: #d97706;
             --accent-purple: #7c3aed;
             
             --grad-blue: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            --grad-purple: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             --grad-amber: linear-gradient(135deg, #d97706 0%, #b45309 100%);
         }
 
@@ -55,10 +53,10 @@
             justify-content: space-between;
             align-items: center;
             background: var(--card-bg);
-            border: 1.5px solid var(--card-border);
+            border: 2px solid var(--card-border);
             padding: 18px 28px;
             border-radius: 20px;
-            box-shadow: 0 6px 16px rgba(51, 65, 85, 0.12);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
         }
 
         .header-title-group {
@@ -79,7 +77,7 @@
             align-items: center;
             gap: 10px;
             background: #eff6ff;
-            border: 1.5px solid #93c5fd;
+            border: 2px solid #93c5fd;
             padding: 6px 14px;
             border-radius: 12px;
         }
@@ -117,7 +115,7 @@
             background: var(--card-inner-bg);
             padding: 8px 14px;
             border-radius: 12px;
-            border: 1.5px solid var(--card-border);
+            border: 2px solid var(--card-border);
         }
 
         /* 2. 대시보드 구조 */
@@ -138,12 +136,13 @@
         /* 3. 카드 공통 컴포넌트 */
         .card {
             background: var(--card-bg);
-            border: 1.5px solid var(--card-border);
+            border: 2px solid var(--card-border);
             border-radius: 20px;
             padding: 22px 24px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+            /* 💡 명확한 분리를 위한 또렷한 입체 그림자 */
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
             transition: all 0.25s ease;
             position: relative;
             overflow: hidden;
@@ -153,24 +152,24 @@
             min-height: 0;
         }
 
-        /* 우측 카드 좌측 4px 포인트 라인 적용 */
+        /* 우측 카드 좌측 5px 포인트 라인 적용 */
         .right-column .ciso-card { 
             flex: 1.2; 
-            border-left: 4px solid var(--accent-blue);
+            border-left: 5px solid var(--accent-blue);
         }
         
         .right-column .notice-card { 
             flex: 1.5; 
-            border-left: 4px solid var(--accent-amber);
+            border-left: 5px solid var(--accent-amber);
         }
         
         .right-column .cve-archive-card { 
             flex: 0.8; 
-            border-left: 4px solid var(--accent-purple);
+            border-left: 5px solid var(--accent-purple);
         }
 
         .card:hover {
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
             border-color: #64748b;
             transform: translateY(-2px);
         }
@@ -181,7 +180,7 @@
             align-items: center;
             margin-bottom: 14px;
             padding-bottom: 10px;
-            border-bottom: 1.5px solid var(--item-border);
+            border-bottom: 2px solid var(--item-border);
         }
 
         .card-title {
@@ -204,8 +203,8 @@
         .tab-btn {
             flex: 1;
             padding: 10px 14px;
-            background: var(--card-inner-bg);
-            border: 1.5px solid var(--card-border);
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
             color: var(--text-primary);
             border-radius: 12px;
             font-size: 13px;
@@ -226,7 +225,7 @@
             background: var(--grad-blue);
             border-color: #1d4ed8;
             color: #ffffff;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
         }
 
         /* 5. 뉴스 리스트 */
@@ -242,8 +241,8 @@
         }
 
         .news-item {
-            background: var(--card-inner-bg);
-            border: 1.5px solid var(--item-border);
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
             border-radius: 14px;
             padding: 14px 18px;
             transition: all 0.2s ease;
@@ -257,7 +256,7 @@
             border-color: var(--accent-blue);
             transform: translateX(4px);
             background: #ffffff;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
         }
 
         .news-header-meta {
@@ -271,15 +270,15 @@
             font-weight: 800;
             padding: 3px 8px;
             border-radius: 6px;
-            background: #ecfdf5;
+            background: #d1fae5;
             color: var(--accent-green);
-            border: 1.5px solid #a7f3d0;
+            border: 1.5px solid #6ee7b7;
         }
 
         .news-date {
             font-size: 11px;
             color: var(--text-secondary);
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .news-item-title {
@@ -292,7 +291,7 @@
         /* 6. CISO 카드 내부 */
         .ciso-box {
             background: #eff6ff;
-            border: 1.5px solid #bfdbfe;
+            border: 2px solid #93c5fd;
             border-radius: 14px;
             padding: 16px;
             flex: 1;
@@ -323,10 +322,10 @@
         .notice-item {
             font-size: 13px;
             color: var(--text-primary);
-            background: var(--card-inner-bg);
+            background: #f8fafc;
             padding: 10px 14px;
             border-radius: 12px;
-            border: 1.5px solid var(--item-border);
+            border: 2px solid #cbd5e1;
             cursor: pointer;
             white-space: nowrap;
             overflow: hidden;
@@ -339,7 +338,7 @@
             border-color: var(--accent-amber);
             color: var(--accent-amber);
             transform: translateX(3px);
-            background: #fffbe3;
+            background: #fef3c7;
         }
 
         /* 보호나라 바로가기 버튼 */
@@ -347,8 +346,8 @@
             margin-top: 12px;
             width: 100%;
             padding: 12px;
-            background: #fffbe3;
-            border: 1.5px solid #fde68a;
+            background: #fef3c7;
+            border: 2px solid #fde68a;
             color: var(--accent-amber);
             font-size: 13px;
             font-weight: 800;
@@ -366,7 +365,7 @@
             background: var(--grad-amber);
             border-color: #b45309;
             color: #ffffff;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
             transform: translateY(-2px);
         }
 
@@ -384,10 +383,10 @@
             align-items: center;
             gap: 12px;
             flex: 1;
-            background: var(--card-inner-bg);
+            background: #f8fafc;
             padding: 12px 16px;
             border-radius: 12px;
-            border: 1.5px solid var(--item-border);
+            border: 2px solid #cbd5e1;
             transition: all 0.2s ease;
         }
 
@@ -403,7 +402,7 @@
             border-radius: 8px;
             background: #f3e8ff;
             color: var(--accent-purple);
-            border: 1.5px solid #ddd6fe;
+            border: 2px solid #c084fc;
             white-space: nowrap;
         }
 
@@ -422,7 +421,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(4px);
             z-index: 1000;
             justify-content: center;
@@ -431,7 +430,7 @@
 
         .modal-content {
             background: #ffffff;
-            border: 1.5px solid var(--card-border);
+            border: 2px solid var(--card-border);
             border-radius: 20px;
             padding: 28px;
             width: 90%;
@@ -439,7 +438,7 @@
             display: flex;
             flex-direction: column;
             gap: 18px;
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
             animation: modalFadeIn 0.25s ease-out;
         }
 
@@ -452,13 +451,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1.5px solid var(--item-border);
+            border-bottom: 2px solid var(--item-border);
             padding-bottom: 14px;
         }
 
         .modal-close-btn {
             background: var(--card-inner-bg);
-            border: 1.5px solid var(--card-border);
+            border: 2px solid var(--card-border);
             border-radius: 50%;
             width: 32px;
             height: 32px;
@@ -487,7 +486,7 @@
             text-decoration: none;
             font-weight: 800;
             border-radius: 10px;
-            border: 1.5px solid #1d4ed8;
+            border: 2px solid #1d4ed8;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
             transition: all 0.2s;
         }
@@ -522,7 +521,7 @@
         <section class="card news-section">
             <div class="card-header">
                 <h2 class="card-title">🚨 금일 신규 보안 이슈</h2>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">카테고리를 선택하세요</span>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">카테고리를 선택하세요</span>
             </div>
 
             <!-- 카테고리 선택 탭 -->
@@ -534,7 +533,7 @@
             </div>
 
             <ul class="news-list" id="new-cve-list">
-                <li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center; font-weight: 600;">
+                <li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center; font-weight: 700;">
                     카테고리를 선택하면 해당 분야의 최신 보안 뉴스를 확인하실 수 있습니다.
                 </li>
             </ul>
@@ -557,10 +556,10 @@
             <section class="card notice-card">
                 <div class="card-header">
                     <h2 class="card-title" style="color: var(--accent-amber);">📢 KISA 보안 공지</h2>
-                    <span id="notice-date-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">최신 게시일 조회 중</span>
+                    <span id="notice-date-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">최신 게시일 조회 중</span>
                 </div>
                 <ul class="notice-list" id="bohonara-notice-list">
-                    <li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight: 600;">
+                    <li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight: 700;">
                         보안 공지 수집 중입니다...
                     </li>
                 </ul>
@@ -575,7 +574,7 @@
             <section class="card cve-archive-card" id="random-cve-box">
                 <div class="card-header">
                     <h2 class="card-title" style="color: var(--accent-purple);">🔍 데일리 CVE</h2>
-                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">클릭 시 상세 브리핑</span>
+                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">클릭 시 상세 브리핑</span>
                 </div>
                 <div class="cve-archive-body">
                     <span class="cve-badge-code" id="random-cve-badge">CVE-CODE</span>
@@ -663,7 +662,7 @@
             }
 
             if (!noticeData.list || noticeData.list.length === 0) {
-                listEl.innerHTML = `<li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight:600;">등록된 최신 보안 공지가 없습니다.</li>`;
+                listEl.innerHTML = `<li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight:700;">등록된 최신 보안 공지가 없습니다.</li>`;
                 return;
             }
 
@@ -701,7 +700,7 @@
             const newsList = globalNewsData[category] || [];
 
             if (newsList.length === 0) {
-                newsListEl.innerHTML = `<li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center; font-weight:600;">[${category}] 카테고리로 등록된 보안 뉴스가 없습니다.</li>`;
+                newsListEl.innerHTML = `<li style="color: var(--text-secondary); font-size:13px; padding:30px 0; text-align:center; font-weight:700;">[${category}] 카테고리로 등록된 보안 뉴스가 없습니다.</li>`;
                 return;
             }
 
