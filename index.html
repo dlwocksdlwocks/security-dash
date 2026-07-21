@@ -47,14 +47,14 @@
             gap: 20px;
         }
 
-        /* 1. 헤더 영역 (소프트 블루 배너 + 카드와 동일한 테두리 색상) */
+        /* 1. 헤더 영역 (양옆 요소 확대에 맞춰 헤더 수직 여백 확대) */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
             border: 2px solid var(--card-border);
-            padding: 16px 28px;
+            padding: 20px 32px; /* 💡 상하 여백을 키워 양옆 큰 로고들을 편안하게 수용 */
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
             color: #ffffff;
@@ -70,7 +70,7 @@
         .header-center { justify-content: center; }
         .header-right { justify-content: flex-end; }
 
-        /* 💡 메인 타이틀 40px, 700 굵기 적용 */
+        /* 메인 타이틀 40px, 700 굵기 적용 */
         .main-title {
             font-size: 40px;
             font-weight: 700;
@@ -81,15 +81,15 @@
             line-height: 1.1;
         }
 
-        /* 💡 에이전트 로고 박스 (클릭 가능 커서 & 인터랙션 효과) */
+        /* 💡 에이전트 로고 박스 (패딩 및 요소 확대) */
         .agent-logo-box {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             background: rgba(255, 255, 255, 0.18);
             border: 1.5px solid rgba(255, 255, 255, 0.35);
-            padding: 8px 16px;
-            border-radius: 12px;
+            padding: 10px 20px; /* 💡 박스 여백 확대 */
+            border-radius: 16px;
             backdrop-filter: blur(4px);
             cursor: pointer;
             transition: all 0.2s ease;
@@ -106,45 +106,51 @@
             transform: translateY(0) scale(0.98);
         }
 
+        /* 💡 에이전트 이미지 시원하게 확대 (46px -> 60px) */
         .agent-avatar-img {
-            width: 46px;
-            height: 46px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #ffffff;
+            border: 2.5px solid #ffffff;
+            flex-shrink: 0;
         }
 
         .agent-info {
             display: flex;
             flex-direction: column;
+            justify-content: center;
         }
 
         .agent-name {
-            font-size: 13px;
+            font-size: 16px; /* 💡 13px -> 16px 확대 */
             font-weight: 800;
             color: #ffffff;
             line-height: 1.2;
         }
 
+        /* 💡 News AI Agent 글씨 확대 (10px -> 15px) */
         .agent-sub {
-            font-size: 10px;
-            color: #e0e7ff;
-            font-weight: 600;
+            font-size: 15px;
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.3px;
         }
 
-        /* 우측 KOMSCO 로고 스타일 (투명 배경 원본 그대로 적용) */
+        /* 💡 우측 KOMSCO 로고 영역 및 크기 시원하게 확대 (38px -> 55px) */
         .logo-container {
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding: 4px 8px;
+            padding: 6px 12px;
         }
 
         .komsco-logo-img {
-            height: 38px;          /* 로고 높이 */
-            width: auto;           /* 비율 유지 */
+            height: 55px; /* 💡 38px -> 55px로 두 배 가깝게 확대 */
+            width: auto;
             object-fit: contain;
         }
+
         /* 2. 대시보드 구조 */
         .dashboard-container {
             display: grid;
@@ -543,14 +549,7 @@
             }
 
             .main-title {
-                font-size: 24px; /* 모바일 대응 축소 */
-            }
-
-            .system-time {
-                width: 100%;
-                text-align: center;
-                font-size: 11px;
-                padding: 6px 10px;
+                font-size: 24px;
             }
 
             .dashboard-container {
@@ -607,7 +606,7 @@
         <!-- 좌측: AI 에이전트 (클릭 시 소개 모달 열림) -->
         <div class="header-left">
             <div class="agent-logo-box" id="agent-intro-btn" title="AI 에이전트 안내 보기">
-                <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/34?text=JP'">
+                <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/60?text=JP'">
                 <div class="agent-info">
                     <span class="agent-sub">News AI Agent</span>
                 </div>
@@ -622,7 +621,7 @@
         <!-- 우측: KOMSCO 로고 -->
         <div class="header-right">
             <div class="logo-container">
-                <img src="/komsco_logo.png" alt="KOMSCO" class="komsco-logo-img" onerror="this.src='https://via.placeholder.com/120x35?text=KOMSCO'">
+                <img src="/komsco_logo.png" alt="KOMSCO" class="komsco-logo-img" onerror="this.src='https://via.placeholder.com/150x55?text=KOMSCO'">
             </div>
         </div>
     </header>
@@ -668,7 +667,7 @@
             <!-- 2. KISA 보호나라 보안공지 -->
             <section class="card notice-card">
                 <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-amber);">📢 KISA 보안 공지</h2>
+                    <h2 class="card-title" style="color: var(--accent-amber);">📢 KISA 보안 신규 공지</h2>
                     <span id="notice-date-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">최신 게시일 조회 중</span>
                 </div>
                 <ul class="notice-list" id="bohonara-notice-list">
@@ -713,7 +712,7 @@
         </div>
     </div>
 
-    <!-- 💡 신규: bobo AI 에이전트 소개 모달 -->
+    <!-- bobo AI 에이전트 소개 모달 -->
     <div class="modal-overlay" id="agent-intro-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -738,8 +737,6 @@
     </div>
 
     <script>
-        document.getElementById('current-time').innerText = "시스템 시간: " + new Date().toLocaleString();
-
         let globalNewsData = {};
         let randomCveData = null;
         let currentSelectedCategory = null;
@@ -871,7 +868,7 @@
             cveModal.style.display = 'none';
         });
 
-        // 💡 에이전트 소개 모달 조작
+        // 에이전트 소개 모달 조작
         const agentIntroModal = document.getElementById('agent-intro-modal');
         document.getElementById('agent-intro-btn').addEventListener('click', () => {
             agentIntroModal.style.display = 'flex';
