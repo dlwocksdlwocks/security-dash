@@ -85,10 +85,10 @@
         .agent-logo-box {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             background: rgba(255, 255, 255, 0.18);
             border: 1.5px solid rgba(255, 255, 255, 0.35);
-            padding: 6px 14px;
+            padding: 8px 16px;
             border-radius: 12px;
             backdrop-filter: blur(4px);
             cursor: pointer;
@@ -107,8 +107,8 @@
         }
 
         .agent-avatar-img {
-            width: 34px;
-            height: 34px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid #ffffff;
@@ -132,18 +132,19 @@
             font-weight: 600;
         }
 
-        .system-time {
-            font-size: 13px;
-            color: #ffffff;
-            font-weight: 700;
-            background: rgba(255, 255, 255, 0.18);
-            padding: 8px 14px;
-            border-radius: 12px;
-            border: 1.5px solid rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(4px);
-            white-space: nowrap;
+        /* 우측 KOMSCO 로고 스타일 (투명 배경 원본 그대로 적용) */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 4px 8px;
         }
 
+        .komsco-logo-img {
+            height: 38px;          /* 로고 높이 */
+            width: auto;           /* 비율 유지 */
+            object-fit: contain;
+        }
         /* 2. 대시보드 구조 */
         .dashboard-container {
             display: grid;
@@ -603,12 +604,11 @@
 
     <!-- 헤더 (3분할 구조) -->
     <header>
-        <!-- 좌측: bobo AI 에이전트 (클릭 시 소개 모달 열림) -->
+        <!-- 좌측: AI 에이전트 (클릭 시 소개 모달 열림) -->
         <div class="header-left">
             <div class="agent-logo-box" id="agent-intro-btn" title="AI 에이전트 안내 보기">
                 <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/34?text=JP'">
                 <div class="agent-info">
-                    <span class="agent-name">bobo</span>
                     <span class="agent-sub">News AI Agent</span>
                 </div>
             </div>
@@ -619,9 +619,11 @@
             <h1 class="main-title">DAILY SECURITY NEWS</h1>
         </div>
 
-        <!-- 우측: 시스템 시간 -->
+        <!-- 우측: KOMSCO 로고 -->
         <div class="header-right">
-            <div class="system-time" id="current-time">시스템 시간: 계산 중...</div>
+            <div class="logo-container">
+                <img src="/komsco_logo.png" alt="KOMSCO" class="komsco-logo-img" onerror="this.src='https://via.placeholder.com/120x35?text=KOMSCO'">
+            </div>
         </div>
     </header>
 
