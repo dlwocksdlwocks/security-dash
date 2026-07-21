@@ -531,6 +531,26 @@
             transform: translateY(-1px);
         }
 
+        .badge-new {
+            display: inline-block;
+            background-color: #ef4444; /* 또렷한 빨간색 */
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+            animation: pulseNew 2s infinite;
+        }
+
+        @keyframes pulseNew {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
         /* 📱 10. 모바일 반응형 미디어 쿼리 */
         @media (max-width: 768px) {
             body {
@@ -801,11 +821,19 @@
                 return;
             }
 
+            // 오늘 날짜 구하기 (YYYY-MM-DD 형식)
+            const todayStr = new Date().toLocaleDateString('sv-SE');
+
             noticeData.list.forEach(n => {
                 const li = document.createElement('li');
                 li.className = 'notice-item';
                 li.title = n.title;
-                li.innerText = `• ${n.title}`;
+
+                // 💡 게시일(posted_date)이 오늘이면 빨간색 NEW 뱃지 태그 추가
+                const isToday = (n.posted_date === todayStr);
+                const newBadgeHtml = isToday ? `<span class="badge-new">NEW</span>` : '';
+
+                li.innerHTML = `• ${n.title} ${newBadgeHtml}`;
                 li.onclick = () => window.open(n.link, '_blank');
                 listEl.appendChild(li);
             });
