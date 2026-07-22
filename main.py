@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 import random
 from crawler import crawl_and_sync_all
 from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
-
+from clear_db import reset_SecurityNews
 load_dotenv()
 
 app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
@@ -29,8 +29,9 @@ scheduler.start()
 
 @app.on_event("startup")
 async def startup_event():
+    asyncio.create_task(asyncio.to_thread(reset_SecurityNews))
     # 서버 시작 직후 신규 크롤링 1회 수집
-    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    #asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
 
 
 # 프론트엔드 연동 CORS 설정
@@ -118,7 +119,7 @@ def get_dashboard_data(
     # 한국 표준시 기준 오늘 날짜 구하기
     KST = zoneinfo.ZoneInfo("Asia/Seoul")
     today = datetime.datetime.now(KST).date() # 👈 서버 타임존과 무관하게 무조건 한국 오늘 날짜!
-    
+
     categories = ["침해", "해킹", "개인정보", "기타보안"]
     news_by_category = {}
 
