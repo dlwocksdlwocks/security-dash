@@ -40,7 +40,7 @@ def reset_SecurityVulnerability():
         db.close()
 
 
-def delete_news_by_source(source_name="뉴식스"):
+def delete_news_by_source(source_name="뉴시스"):
     """특정 매체(source) 이름이 포함된 뉴스 데이터를 DB에서 일괄 삭제합니다."""
     db = SessionLocal()
     try:
