@@ -13,8 +13,8 @@
             --card-inner-bg: #f1f5f9;
             
             /* 또렷한 명조 경계선 */
-            --card-border: #94a3b8;          /* 카드 테두리 */
-            --item-border: #cbd5e1;          /* 내부 아이템/버튼 테두리 */
+            --card-border: #94a3b8;
+            --item-border: #cbd5e1;
             
             --text-primary: #0f172a;
             --text-secondary: #475569;
@@ -47,7 +47,7 @@
             gap: 20px;
         }
 
-        /* 1. 헤더 영역 (PC용 슬림 배너 고정) */
+        /* 1. PC 헤더 영역 */
         header {
             display: flex;
             justify-content: space-between;
@@ -55,7 +55,7 @@
             background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
             border: 2px solid var(--card-border);
             padding: 12px 28px;
-            height: 80px; /* PC 슬림 높이 고정 */
+            height: 80px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
             color: #ffffff;
@@ -131,7 +131,7 @@
         }
 
         .komsco-logo-img {
-            height: 52px; /* PC용 로고 크기 조정 */
+            height: 52px;
             width: auto;
             object-fit: contain;
         }
@@ -530,20 +530,20 @@
             100% { transform: scale(1); }
         }
 
-        /* 📱 10. 모바일 반응형 최적화 (768px 이하) - 강제 우선순위 적용 */
-        @media (max-width: 768px) {
+        /* 📱 10. 모바일 반응형 완벽 최적화 (768px 이하) */
+        @media screen and (max-width: 768px) {
             body {
                 padding: 10px !important;
                 gap: 12px !important;
             }
 
-            /* 헤더 모바일 레이아웃 */
+            /* 💡 헤더 슬림화 및 모바일 배치 */
             header {
                 flex-direction: column !important;
-                gap: 10px !important;
-                padding: 14px 12px !important;
+                gap: 6px !important;
+                padding: 10px 12px !important;
                 height: auto !important;
-                border-radius: 16px !important;
+                border-radius: 14px !important;
             }
 
             .header-left, .header-center, .header-right {
@@ -552,53 +552,65 @@
                 flex: none !important;
             }
 
+            /* 타이틀 폰트 크기 슬림화 (줄바꿈 및 한눈 정렬) */
             .main-title {
-                font-size: 20px !important;
+                font-size: 18px !important;
                 white-space: normal !important;
                 text-align: center !important;
                 letter-spacing: -0.3px !important;
+                line-height: 1.2 !important;
             }
 
+            /* 에이전트 미니 박스 */
             .agent-logo-box {
-                padding: 6px 12px !important;
-                gap: 8px !important;
-                border-radius: 12px !important;
+                padding: 4px 10px !important;
+                gap: 6px !important;
+                border-radius: 10px !important;
             }
 
             .agent-avatar-img {
-                width: 34px !important;
-                height: 34px !important;
+                width: 28px !important;
+                height: 28px !important;
             }
 
             .agent-sub {
-                font-size: 12px !important;
+                font-size: 11px !important;
             }
 
+            /* KOMSCO 로고 컴팩트화 */
             .logo-container {
                 justify-content: center !important;
-                max-height: 35px !important;
+                max-height: 28px !important;
             }
 
             .komsco-logo-img {
-                height: 32px !important;
+                height: 24px !important;
                 width: auto !important;
             }
 
-            /* 대시보드 1열 배치 */
+            /* 💡 세로 1열 완벽 배치 */
             .dashboard-container {
-                grid-template-columns: 1fr !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
+
+            .right-column {
+                display: flex !important;
+                flex-direction: column !important;
                 gap: 12px !important;
             }
 
             .card {
-                padding: 14px 16px !important;
-                border-radius: 16px !important;
+                padding: 14px 14px !important;
+                border-radius: 14px !important;
             }
 
             .card-title {
                 font-size: 14px !important;
             }
 
+            /* 카테고리 버튼 2x2 반응형 */
             .category-tabs {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -606,12 +618,12 @@
             }
 
             .tab-btn {
-                padding: 8px 6px !important;
+                padding: 8px 4px !important;
                 font-size: 12px !important;
             }
 
             .news-list {
-                max-height: 360px !important;
+                max-height: 320px !important;
             }
 
             .news-item {
@@ -624,8 +636,8 @@
                 word-break: keep-all !important;
             }
 
-            .right-column {
-                gap: 12px !important;
+            .notice-item {
+                font-size: 12px !important;
             }
 
             .ciso-box {
