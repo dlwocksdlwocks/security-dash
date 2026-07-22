@@ -12,9 +12,9 @@ from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 import random
-from crawler import crawl_and_sync_all
+from crawler import crawl_and_sync_all, crawl_bohonara_vulnerability_all
 from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
-
+from clear_db import reset_SecurityVulnerability
 load_dotenv()
 
 app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
@@ -26,13 +26,28 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
 scheduler.start()
 
+# 💡 클라우드 자동 실행용 순차적 작업 함수 (삭제 -> DB세션생성 -> 1~8페이지 전체 수집)
+def init_and_crawl_vulnerabilities():
+    # 1. 기존 취약점 DB 깔끔하게 비우기
+    reset_SecurityVulnerability()
+
+    # 2. DB 세션 생성 후 8페이지 전체 크롤링 수행
+    db = SessionLocal()
+    try:
+        crawl_bohonara_vulnerability_all(db)
+    finally:
+        db.close()
+
 
 @app.on_event("startup")
 async def startup_event():
 
     # 서버 시작 직후 신규 크롤링 1회 수집
-    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    #asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
 
+    # 💡 순차적으로 실행되도록 백그라운드 쓰레드로 전달
+    asyncio.create_task(asyncio.to_thread(init_and_crawl_vulnerabilities))
+   
 
 # 프론트엔드 연동 CORS 설정
 app.add_middleware(

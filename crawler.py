@@ -10,7 +10,7 @@ import feedparser
 from openai import OpenAI
 import requests
 
-# 💡 SecurityNotice 모델 import
+# 💡 SecurityNotice 및 모델 import
 from database import (
     SecurityNews,
     SecurityNotice,
@@ -265,7 +265,6 @@ def crawl_bohonara_vulnerability(db):
                 title, content_text, "KISA 보호나라", "KISA 침해사고분석단"
             )
 
-            # 💡 [Fix] now_kst 변수 정의 추가
             now_kst = datetime.datetime.now(KST)
 
             article = SecurityVulnerability(
@@ -277,6 +276,7 @@ def crawl_bohonara_vulnerability(db):
                 summary=summary,
                 cve_code=cve_code,
                 published_at=now_kst,
+                created_at=now_kst,
             )
             db.add(article)
             db.commit()
@@ -287,6 +287,129 @@ def crawl_bohonara_vulnerability(db):
     except Exception as e:
         db.rollback()
         print(f"❌ 보호나라 nttId 기반 크롤링 실패: {e}")
+
+
+def crawl_bohonara_vulnerability_all(db):
+    """KISA 보호나라 취약점 게시판의 1페이지~8페이지 전체 목록을 순회하여 DB에 저장합니다."""
+    print("\n🚀 [KISA 보호나라] 전체 취약점 정보 수집 시작 (1~8페이지 순회)...")
+    
+    base_list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205023&bbsId=B0000302"
+    total_saved_count = 0
+
+    for page_index in range(1, 9):
+        target_url = f"{base_list_url}&pageIndex={page_index}"
+        print(f"\n📄 [페이지 {page_index}/8] 크롤링 중: {target_url}")
+
+        try:
+            res = requests.get(target_url, headers=HEADERS, timeout=10)
+            res.encoding = "utf-8"
+            soup = BeautifulSoup(res.text, "html.parser")
+
+            post_items = soup.select("div.tbl_responsive table tbody tr")
+            if not post_items:
+                post_items = soup.select("table tbody tr")
+
+            if not post_items:
+                print(f"⚠️ {page_index} 페이지에 게시글이 없습니다.")
+                continue
+
+            page_saved_count = 0
+
+            for tr in post_items:
+                link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
+                if not link_tag:
+                    continue
+
+                title = link_tag.get_text(strip=True)
+                href = link_tag.get("href", "")
+
+                # 💡 게시일 파싱 (data-label="게시일 :")
+                date_td = tr.select_one('td.date[data-label="게시일 :"]')
+                if not date_td:
+                    date_tds = tr.select("td.date")
+                    date_td = date_tds[-1] if date_tds else None
+
+                date_str = date_td.get_text(strip=True) if date_td else ""
+
+                # 💡 'YYYY-MM-DD' 문자열 -> KST datetime 변환
+                post_datetime = datetime.datetime.now(KST)
+                if date_str:
+                    try:
+                        dt_parsed = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+                        post_datetime = dt_parsed.replace(tzinfo=KST)
+                    except ValueError:
+                        pass
+
+                # nttId 추출
+                parsed_url = urllib.parse.urlparse(href)
+                params = urllib.parse.parse_qs(parsed_url.query)
+                ntt_id = params.get("nttId", [None])[0]
+
+                if not ntt_id and "nttId=" in href:
+                    ntt_id = href.split("nttId=")[1].split("&")[0]
+
+                if not ntt_id:
+                    continue
+
+                full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205023&bbsId=B0000302&nttId={ntt_id}"
+
+                # DB 중복 검사
+                exists = (
+                    db.query(SecurityVulnerability)
+                    .filter(SecurityVulnerability.link.like(f"%nttId={ntt_id}%"))
+                    .first()
+                )
+                if exists:
+                    continue
+
+                # 상세 본문 수집
+                content_text = ""
+                try:
+                    detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
+                    detail_res.encoding = "utf-8"
+                    detail_soup = BeautifulSoup(detail_res.text, "html.parser")
+
+                    view_content = detail_soup.select_one(".bbs_view_container")
+                    if view_content:
+                        content_text = view_content.get_text(strip=True)[:2500]
+                    else:
+                        content_text = detail_soup.get_text(strip=True)[:2500]
+                except Exception:
+                    content_text = title
+
+                cve_code = extract_cve_code([title, content_text])
+                summary = summarize_with_chatgpt(
+                    title, content_text, "KISA 보호나라", "KISA 침해사고분석단"
+                )
+
+                try:
+                    article = SecurityVulnerability(
+                        source="KISA 보호나라",
+                        author="KISA 침해사고분석단",
+                        title=title,
+                        link=full_link,
+                        content=content_text,
+                        summary=summary,
+                        cve_code=cve_code,
+                        published_at=post_datetime,
+                        created_at=post_datetime, # 👈 게시판 실제 작성일 저장
+                    )
+                    db.add(article)
+                    db.commit()
+                    page_saved_count += 1
+                    total_saved_count += 1
+                    print(f"  └ 💾 [저장 완료] 게시일: {date_str} | {title[:35]}...")
+                except Exception as item_err:
+                    db.rollback()
+                    print(f"  └ ⚠️ 저장 실패 (nttId: {ntt_id}): {item_err}")
+
+            print(f"✅ {page_index} 페이지 처리 완료 (신규 저장: {page_saved_count}건)")
+            time.sleep(0.5)
+
+        except Exception as e:
+            print(f"❌ [페이지 {page_index}] 수집 중 에러 발생: {e}")
+
+    print(f"\n🎉 보호나라 취약점 (1~8페이지) 수집 완료! (총 {total_saved_count}건 저장됨)\n")
 
 
 def crawl_rss_source(db, name, url, default_author):
@@ -337,12 +460,7 @@ def crawl_rss_source(db, name, url, default_author):
             if hasattr(entry, "author") and entry.author:
                 author = entry.author
 
-            # 💡 루프 내부에서 KST 현재 시각 새로 갱신
             now_kst = datetime.datetime.now(KST)
-
-            # ----------------------------------------------------
-            # 📅 RSS 원본 발행일(published_at) 파싱 로직
-            # ----------------------------------------------------
             published_dt = now_kst
 
             pub_parsed = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
@@ -382,8 +500,8 @@ def crawl_rss_source(db, name, url, default_author):
                     content=content_text,
                     summary=summary,
                     category=category,
-                    created_at=now_kst,        # 👈 KST 수집 시각
-                    published_at=published_dt, # 👈 [Fix] 파싱된 KST 원본 발행일 변수 지정
+                    created_at=now_kst,
+                    published_at=published_dt,
                 )
                 db.add(article)
                 db.commit()
