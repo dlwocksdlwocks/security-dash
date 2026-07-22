@@ -288,163 +288,73 @@ def crawl_bohonara_vulnerability(db):
         db.rollback()
         print(f"❌ 보호나라 nttId 기반 크롤링 실패: {e}")
 
-
-def crawl_bohonara_vulnerability_all(db):
-    """KISA 보호나라 취약점 게시판의 1페이지~8페이지 전체 목록을 순회하여 DB에 저장합니다."""
-    print("\n🚀 [KISA 보호나라] 전체 취약점 정보 수집 시작 (1~8페이지 순회)...")
-    
-    base_list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205023&bbsId=B0000302"
-    total_saved_count = 0
-
-    for page_index in range(1, 9):
-        target_url = f"{base_list_url}&pageIndex={page_index}"
-        print(f"\n📄 [페이지 {page_index}/8] 크롤링 중: {target_url}")
-
-        try:
-            res = requests.get(target_url, headers=HEADERS, timeout=10)
-            res.encoding = "utf-8"
-            soup = BeautifulSoup(res.text, "html.parser")
-
-            post_items = soup.select("div.tbl_responsive table tbody tr")
-            if not post_items:
-                post_items = soup.select("table tbody tr")
-
-            if not post_items:
-                print(f"⚠️ {page_index} 페이지에 게시글이 없습니다.")
-                continue
-
-            page_saved_count = 0
-
-            for tr in post_items:
-                link_tag = tr.select_one("td.sbj.tal a") or tr.select_one("td a")
-                if not link_tag:
-                    continue
-
-                title = link_tag.get_text(strip=True)
-                href = link_tag.get("href", "")
-
-                # 💡 게시일 파싱 (data-label="게시일 :")
-                date_td = tr.select_one('td.date[data-label="게시일 :"]')
-                if not date_td:
-                    date_tds = tr.select("td.date")
-                    date_td = date_tds[-1] if date_tds else None
-
-                date_str = date_td.get_text(strip=True) if date_td else ""
-
-                # 💡 'YYYY-MM-DD' 문자열 -> KST datetime 변환
-                post_datetime = datetime.datetime.now(KST)
-                if date_str:
-                    try:
-                        dt_parsed = datetime.datetime.strptime(date_str, "%Y-%m-%d")
-                        post_datetime = dt_parsed.replace(tzinfo=KST)
-                    except ValueError:
-                        pass
-
-                # nttId 추출
-                parsed_url = urllib.parse.urlparse(href)
-                params = urllib.parse.parse_qs(parsed_url.query)
-                ntt_id = params.get("nttId", [None])[0]
-
-                if not ntt_id and "nttId=" in href:
-                    ntt_id = href.split("nttId=")[1].split("&")[0]
-
-                if not ntt_id:
-                    continue
-
-                full_link = f"https://www.boho.or.kr/kr/bbs/view.do?menuNo=205023&bbsId=B0000302&nttId={ntt_id}"
-
-                # DB 중복 검사
-                exists = (
-                    db.query(SecurityVulnerability)
-                    .filter(SecurityVulnerability.link.like(f"%nttId={ntt_id}%"))
-                    .first()
-                )
-                if exists:
-                    continue
-
-                # 상세 본문 수집
-                content_text = ""
-                try:
-                    detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
-                    detail_res.encoding = "utf-8"
-                    detail_soup = BeautifulSoup(detail_res.text, "html.parser")
-
-                    view_content = detail_soup.select_one(".bbs_view_container")
-                    if view_content:
-                        content_text = view_content.get_text(strip=True)[:2500]
-                    else:
-                        content_text = detail_soup.get_text(strip=True)[:2500]
-                except Exception:
-                    content_text = title
-
-                cve_code = extract_cve_code([title, content_text])
-                summary = summarize_with_chatgpt(
-                    title, content_text, "KISA 보호나라", "KISA 침해사고분석단"
-                )
-
-                try:
-                    article = SecurityVulnerability(
-                        source="KISA 보호나라",
-                        author="KISA 침해사고분석단",
-                        title=title,
-                        link=full_link,
-                        content=content_text,
-                        summary=summary,
-                        cve_code=cve_code,
-                        published_at=post_datetime,
-                        created_at=post_datetime, # 👈 게시판 실제 작성일 저장
-                    )
-                    db.add(article)
-                    db.commit()
-                    page_saved_count += 1
-                    total_saved_count += 1
-                    print(f"  └ 💾 [저장 완료] 게시일: {date_str} | {title[:35]}...")
-                except Exception as item_err:
-                    db.rollback()
-                    print(f"  └ ⚠️ 저장 실패 (nttId: {ntt_id}): {item_err}")
-
-            print(f"✅ {page_index} 페이지 처리 완료 (신규 저장: {page_saved_count}건)")
-            time.sleep(0.5)
-
-        except Exception as e:
-            print(f"❌ [페이지 {page_index}] 수집 중 에러 발생: {e}")
-
-    print(f"\n🎉 보호나라 취약점 (1~8페이지) 수집 완료! (총 {total_saved_count}건 저장됨)\n")
-
-
 def crawl_rss_source(db, name, url, default_author):
-    """보안뉴스 및 데일리시큐 RSS 피드에서 최신 기사를 수집하고 AI로 카테고리를 분류하여 KST 시각으로 저장합니다."""
+    """RSS 피드 및 네이버 뉴스에서 최신 기사를 수집하고 AI로 카테고리를 분류하여 KST 시각으로 저장합니다."""
     print(f"\n📡 [{name}] 신규 위협 피드 수집 중...")
     try:
         session = requests.Session()
         response = session.get(url, headers=HEADERS, timeout=10)
 
-        if "boannews" in url:
-            response.encoding = "euc-kr"
-        else:
-            response.encoding = response.apparent_encoding
+        entries = []
 
-        feed = feedparser.parse(response.text)
+        # 💡 1. 네이버 뉴스 웹페이지(HTML) 파싱 분기
+        if "naver.com" in url:
+            response.encoding = "utf-8"
+            soup = BeautifulSoup(response.text, "html.parser")
+            news_items = soup.select(".sa_item")
 
-        if not feed.entries:
-            soup = BeautifulSoup(response.text, "xml")
-            items = soup.find_all("item")
-            feed.entries = []
-            for item in items:
-                class Entry:
+            for item in news_items:
+                title_tag = item.select_one(".sa_text_title")
+                if not title_tag:
+                    continue
+                
+                # RSS Entry 객체처럼 사용할 더미 클래스 정의
+                class NaverEntry:
                     pass
-                e = Entry()
-                e.title = item.title.text if item.title else ""
-                e.link = item.link.text if item.link else ""
-                e.description = item.description.text if item.description else ""
+                
+                e = NaverEntry()
+                e.title = title_tag.get_text(strip=True)
+                e.link = title_tag.get("href")
+                
+                # 언론사 이름 (예: 연합뉴스, 지디넷코리아 등)
+                press_tag = item.select_one(".sa_text_press")
+                e.author = press_tag.get_text(strip=True) if press_tag else default_author
+                
+                # 요약문
+                summary_tag = item.select_one(".sa_text_lede")
+                e.description = summary_tag.get_text(strip=True) if summary_tag else ""
+                
+                entries.append(e)
 
-                date_tag = item.find("dc:date") or item.find("pubDate")
-                e.published = date_tag.text if date_tag else ""
-                feed.entries.append(e)
+        # 💡 2. 기존 RSS/XML 파싱 분기
+        else:
+            if "boannews" in url:
+                response.encoding = "euc-kr"
+            else:
+                response.encoding = response.apparent_encoding
+
+            feed = feedparser.parse(response.text)
+            entries = feed.entries
+
+            if not entries:
+                soup = BeautifulSoup(response.text, "xml")
+                items = soup.find_all("item")
+                for item in items:
+                    class Entry:
+                        pass
+                    e = Entry()
+                    e.title = item.title.text if item.title else ""
+                    e.link = item.link.text if item.link else ""
+                    e.description = item.description.text if item.description else ""
+
+                    date_tag = item.find("dc:date") or item.find("pubDate")
+                    e.published = date_tag.text if date_tag else ""
+                    entries.append(e)
 
         count = 0
 
-        for entry in feed.entries[:10]:
+        # 💡 3. 데이터 처리 및 DB 저장
+        for entry in entries[:10]:
             if not entry.title:
                 continue
 
@@ -482,18 +392,25 @@ def crawl_rss_source(db, name, url, default_author):
             content_text = ""
             try:
                 res = session.get(entry.link, headers=HEADERS, timeout=10)
-                res.encoding = response.encoding
+                
+                # 💡 [수정 포인트] 개별 기사별 최적 인코딩 처리
+                if "boannews" in entry.link:
+                    res.encoding = "euc-kr"
+                else:
+                    res.encoding = res.apparent_encoding if res.encoding is None else res.encoding
+
                 soup = BeautifulSoup(res.text, "html.parser")
                 content_text = soup.get_text(strip=True)[:2500]
             except Exception:
                 content_text = entry.description if hasattr(entry, "description") else ""
 
             try:
+                # ChatGPT 기반 카테고리 분류 & 요약
                 category = classify_category_with_chatgpt(entry.title, content_text)
                 summary = summarize_with_chatgpt(entry.title, content_text, name, author)
 
                 article = SecurityNews(
-                    source=name,
+                    source=author if "naver.com" in url else name, # 네이버일 경우 해당 기사의 언론사 이름 표시
                     author=author,
                     title=entry.title,
                     link=entry.link,
@@ -516,7 +433,6 @@ def crawl_rss_source(db, name, url, default_author):
         db.rollback()
         print(f"❌ [{name}] 피드 파싱 실패: {e}")
 
-
 def crawl_and_sync_all():
     print("🚀 카테고리별 보안 데이터 수집 및 센터 공지 요약 프로세스 가동 (ChatGPT)...")
     db = SessionLocal()
@@ -534,6 +450,12 @@ def crawl_and_sync_all():
             "데일리시큐",
             "https://www.dailysecu.com/rss/clickTop.xml",
             "데일리시큐 취재기자",
+        )
+        crawl_rss_source(
+            db, 
+            "네이버뉴스", 
+            "https://news.naver.com/breakingnews/section/105/732", 
+            "네이버뉴스"
         )
     finally:
         db.close()
