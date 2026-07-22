@@ -10,3 +10,4 @@ python-dotenv
 lxml
 aiofiles
 APScheduler
+tzdata

@@ -3,13 +3,14 @@ import os
 import re
 import time
 import urllib.parse
+import zoneinfo
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import feedparser
 from openai import OpenAI
 import requests
 
-# 💡 SecurityNotice 모델 import 추가
+# 💡 SecurityNotice 모델 import
 from database import (
     SecurityNews,
     SecurityNotice,
@@ -19,6 +20,9 @@ from database import (
 )
 
 load_dotenv()
+
+# 💡 한국 표준시 (KST) 정의
+KST = zoneinfo.ZoneInfo("Asia/Seoul")
 
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
@@ -166,9 +170,9 @@ def crawl_bohonara_notice(db):
                     break
 
             if not posted_date:
-                posted_date = datetime.date.today().strftime("%Y-%m-%d")
+                # 💡 KST 기준 오늘 날짜 저장
+                posted_date = datetime.datetime.now(KST).strftime("%Y-%m-%d")
 
-            # 💡 [핵심 수정] DB 조회 및 건별 commit 처리 (중복 충돌 및 세션 에러 방지)
             exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
             if exists:
                 continue
@@ -180,10 +184,10 @@ def crawl_bohonara_notice(db):
                     posted_date=posted_date
                 )
                 db.add(notice)
-                db.commit()  # 💡 건별로 즉시 commit하여 세션 중복을 방지합니다.
+                db.commit()
                 count += 1
             except Exception as e:
-                db.rollback()  # 💡 만약 개별 건에서 충돌 시 세션을 초기화하고 계속 진행합니다.
+                db.rollback()
                 continue
 
         print(f"✅ [보호나라 공지] 신규 공지 {count}건 저장 완료.")
@@ -192,12 +196,11 @@ def crawl_bohonara_notice(db):
         db.rollback()
         print(f"❌ [보호나라 공지] 크롤링 실패: {e}")
 
+
 def crawl_bohonara_vulnerability(db):
     """KISA 보호나라 취약점 게시판에서 새 공지 1건을 수집하여 SecurityVulnerability 테이블에 저장합니다."""
     print("\n📡 [KISA 보호나라] 취약점 정보 수집 중 (nttId 기준)...")
-    list_url = (
-        "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205023&bbsId=B0000302"
-    )
+    list_url = "https://www.boho.or.kr/kr/bbs/list.do?menuNo=205023&bbsId=B0000302"
 
     try:
         res = requests.get(list_url, headers=HEADERS, timeout=10)
@@ -242,14 +245,10 @@ def crawl_bohonara_vulnerability(db):
             if exists:
                 continue
 
-            print(
-                f"📰 새 취약점 공지 발견 (nttId: {ntt_id}): [KISA 보호나라] - {title}"
-            )
+            print(f"📰 새 취약점 공지 발견 (nttId: {ntt_id}): [KISA 보호나라] - {title}")
             content_text = ""
             try:
-                detail_res = requests.get(
-                    full_link, headers=HEADERS, timeout=10
-                )
+                detail_res = requests.get(full_link, headers=HEADERS, timeout=10)
                 detail_res.encoding = "utf-8"
                 detail_soup = BeautifulSoup(detail_res.text, "html.parser")
 
@@ -267,6 +266,9 @@ def crawl_bohonara_vulnerability(db):
                 title, content_text, "KISA 보호나라", "KISA 침해사고분석단"
             )
 
+            # 💡 KST 한국 시각 저장
+            now_kst = datetime.datetime.now(KST)
+
             article = SecurityVulnerability(
                 source="KISA 보호나라",
                 author="KISA 침해사고분석단",
@@ -275,23 +277,21 @@ def crawl_bohonara_vulnerability(db):
                 content=content_text,
                 summary=summary,
                 cve_code=cve_code,
-                published_at=datetime.datetime.now(datetime.timezone.utc),
+                published_at=now_kst,
             )
             db.add(article)
             db.commit()
-            print(
-                f"✅ 보호나라 최신 취약점 1건(nttId: {ntt_id}, CVE: {cve_code})"
-                " 저장 완료."
-            )
+            print(f"✅ 보호나라 최신 취약점 1건(nttId: {ntt_id}, CVE: {cve_code}) 저장 완료.")
             return
 
         print("⏭️ 보호나라에 새로 등록된 취약점 공지가 없습니다.")
     except Exception as e:
+        db.rollback()
         print(f"❌ 보호나라 nttId 기반 크롤링 실패: {e}")
 
 
 def crawl_rss_source(db, name, url, default_author):
-    """보안뉴스 및 데일리시큐 RSS 피드에서 각각 최신 10건을 수집하고 AI로 카테고리를 분류하여 저장합니다."""
+    """보안뉴스 및 데일리시큐 RSS 피드에서 최신 기사를 수집하고 AI로 카테고리를 분류하여 KST 시각으로 저장합니다."""
     print(f"\n📡 [{name}] 신규 위협 피드 수집 중...")
     try:
         session = requests.Session()
@@ -309,16 +309,12 @@ def crawl_rss_source(db, name, url, default_author):
             items = soup.find_all("item")
             feed.entries = []
             for item in items:
-
                 class Entry:
                     pass
-
                 e = Entry()
                 e.title = item.title.text if item.title else ""
                 e.link = item.link.text if item.link else ""
-                e.description = (
-                    item.description.text if item.description else ""
-                )
+                e.description = item.description.text if item.description else ""
                 feed.entries.append(e)
 
         count = 0
@@ -347,33 +343,38 @@ def crawl_rss_source(db, name, url, default_author):
                 soup = BeautifulSoup(res.text, "html.parser")
                 content_text = soup.get_text(strip=True)[:2500]
             except Exception:
-                content_text = (
-                    entry.description if hasattr(entry, "description") else ""
+                content_text = entry.description if hasattr(entry, "description") else ""
+
+            # 💡 건별 예외 처리로 실패 시 안전 수집 보장
+            try:
+                category = classify_category_with_chatgpt(entry.title, content_text)
+                summary = summarize_with_chatgpt(entry.title, content_text, name, author)
+
+                # 💡 KST(한국 표준시) 적용
+                now_kst = datetime.datetime.now(KST)
+
+                article = SecurityNews(
+                    source=name,
+                    author=author,
+                    title=entry.title,
+                    link=entry.link,
+                    content=content_text,
+                    summary=summary,
+                    category=category,
+                    created_at=now_kst,    # 👈 KST 시각 명시 저장
+                    published_at=now_kst,  # 👈 KST 시각 명시 저장
                 )
+                db.add(article)
+                db.commit() # 💡 건별 저장으로 세션 보호
+                count += 1
+            except Exception as item_err:
+                db.rollback()
+                print(f"⚠️ [{name}] 개별 기사 저장 중 에러 건너뜀: {item_err}")
+                continue
 
-            category = classify_category_with_chatgpt(
-                entry.title, content_text
-            )
-            summary = summarize_with_chatgpt(
-                entry.title, content_text, name, author
-            )
-
-            article = SecurityNews(
-                source=name,
-                author=author,
-                title=entry.title,
-                link=entry.link,
-                content=content_text,
-                summary=summary,
-                category=category,
-                published_at=datetime.datetime.now(datetime.timezone.utc),
-            )
-            db.add(article)
-            count += 1
-
-        db.commit()
         print(f"✅ [{name}] 새 기사 {count}건 저장 완료.")
     except Exception as e:
+        db.rollback()
         print(f"❌ [{name}] 피드 파싱 실패: {e}")
 
 
@@ -398,7 +399,6 @@ def crawl_and_sync_all():
     finally:
         db.close()
     print("\n🏁 모든 카테고리 데이터 수집 및 종합 요약 저장 완료!")
-
 
 
 if __name__ == "__main__":

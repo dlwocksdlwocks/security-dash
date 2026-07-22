@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import zoneinfo
 import json
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -113,7 +114,11 @@ def get_dashboard_data(
     category: str = Query(None, description="선택된 카테고리 (침해, 해킹, 개인정보, 기타보안)"),
     db: Session = Depends(get_db),
 ):
-    today = datetime.date.today()
+    
+    # 한국 표준시 기준 오늘 날짜 구하기
+    KST = zoneinfo.ZoneInfo("Asia/Seoul")
+    today = datetime.datetime.now(KST).date() # 👈 서버 타임존과 무관하게 무조건 한국 오늘 날짜!
+    
     categories = ["침해", "해킹", "개인정보", "기타보안"]
     news_by_category = {}
 
