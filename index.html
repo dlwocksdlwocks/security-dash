@@ -551,63 +551,106 @@
             100% { transform: scale(1); }
         }
 
-        /* 📱 10. 모바일 반응형 미디어 쿼리 */
+        /* 📱 모바일 반응형 최적화 (768px 이하) */
         @media (max-width: 768px) {
             body {
                 padding: 12px;
-                gap: 14px;
+                gap: 12px;
             }
 
+            /* 1. 헤더 모바일 레이아웃 */
             header {
                 flex-direction: column;
-                gap: 12px;
-                padding: 16px;
+                gap: 10px;
+                padding: 16px 14px;
+                height: auto; /* 고정 높이 해제 */
+                border-radius: 16px;
             }
 
             .header-left, .header-center, .header-right {
                 width: 100%;
                 justify-content: center;
+                flex: none;
             }
 
+            /* 메인 타이틀 모바일 축소 */
             .main-title {
-                font-size: 24px;
+                font-size: 22px; /* 40px -> 22px 축소 */
+                letter-spacing: -0.3px;
+                text-align: center;
             }
 
+            /* 에이전트 박스 모바일 축소 */
+            .agent-logo-box {
+                padding: 6px 12px;
+                gap: 10px;
+                border-radius: 12px;
+            }
+
+            .agent-avatar-img {
+                width: 36px;
+                height: 36px;
+            }
+
+            .agent-sub {
+                font-size: 13px;
+            }
+
+            /* KOMSCO 로고 모바일 축소 */
+            .logo-container {
+                justify-content: center;
+                max-height: 40px;
+            }
+
+            .komsco-logo-img {
+                height: 35px; /* 120px -> 35px 축소 */
+                width: auto;
+            }
+
+            /* 2. 카드 및 구조 모바일 축소 */
             .dashboard-container {
                 grid-template-columns: 1fr;
-                gap: 14px;
+                gap: 12px;
             }
 
             .card {
-                padding: 16px;
+                padding: 14px 16px;
                 border-radius: 16px;
             }
 
+            .card-title {
+                font-size: 14px;
+            }
+
+            /* 카테고리 탭 버튼 */
             .category-tabs {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
+                gap: 6px;
             }
 
             .tab-btn {
-                padding: 8px 10px;
+                padding: 8px 6px;
                 font-size: 12px;
             }
 
+            /* 뉴스 리스트 모바일 조율 */
             .news-list {
-                max-height: 380px;
+                max-height: 360px;
             }
 
             .news-item {
-                padding: 12px;
+                padding: 10px 12px;
             }
 
             .news-item-title {
                 font-size: 13px;
+                white-space: normal; /* 모바일에서 긴 제목 줄바꿈 */
+                word-break: keep-all;
             }
 
             .right-column {
-                gap: 14px;
+                gap: 12px;
             }
 
             .ciso-box {
@@ -616,6 +659,7 @@
 
             #ciso-view-text {
                 font-size: 13px;
+                line-height: 1.5;
             }
         }
     </style>
