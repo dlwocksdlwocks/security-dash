@@ -170,17 +170,17 @@
         }
 
         .right-column .ciso-card { 
-            flex: 1.2; 
+            flex: 1; 
             border-left: 5px solid var(--accent-blue);
         }
         
         .right-column .notice-card { 
-            flex: 1.5; 
+            flex: 1.2; 
             border-left: 5px solid var(--accent-amber);
         }
         
         .right-column .cve-archive-card { 
-            flex: 0.8; 
+            flex: 1.2; 
             border-left: 5px solid var(--accent-purple);
         }
 
@@ -386,36 +386,43 @@
             transform: translateY(-2px);
         }
 
-        /* 8. 데일리 CVE 카드 */
-        .cve-archive-card {
-            cursor: pointer;
+        /* 8. 최신 CVE 목록 스타일 */
+        .cve-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 180px;
         }
 
-        .cve-archive-body {
+        .cve-item-body {
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex: 1;
+            gap: 10px;
             background: #f8fafc;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 12px;
             border: 2px solid #cbd5e1;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
-        .cve-archive-card:hover .cve-archive-body {
+        .cve-item-body:hover {
             border-color: var(--accent-purple);
             background: #f3e8ff;
+            transform: translateX(3px);
         }
 
         .cve-badge-code {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
-            padding: 5px 10px;
-            border-radius: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
             background: #f3e8ff;
             color: var(--accent-purple);
-            border: 2px solid #c084fc;
+            border: 1.5px solid #c084fc;
             white-space: nowrap;
         }
 
@@ -537,7 +544,6 @@
                 gap: 12px !important;
             }
 
-            /* 💡 헤더 슬림화 및 모바일 배치 */
             header {
                 flex-direction: column !important;
                 gap: 6px !important;
@@ -552,7 +558,6 @@
                 flex: none !important;
             }
 
-            /* 타이틀 폰트 크기 슬림화 (줄바꿈 및 한눈 정렬) */
             .main-title {
                 font-size: 18px !important;
                 white-space: normal !important;
@@ -561,7 +566,6 @@
                 line-height: 1.2 !important;
             }
 
-            /* 에이전트 미니 박스 */
             .agent-logo-box {
                 padding: 4px 10px !important;
                 gap: 6px !important;
@@ -577,7 +581,6 @@
                 font-size: 11px !important;
             }
 
-            /* KOMSCO 로고 컴팩트화 */
             .logo-container {
                 justify-content: center !important;
                 max-height: 28px !important;
@@ -588,7 +591,6 @@
                 width: auto !important;
             }
 
-            /* 💡 세로 1열 완벽 배치 */
             .dashboard-container {
                 display: flex !important;
                 flex-direction: column !important;
@@ -610,7 +612,6 @@
                 font-size: 14px !important;
             }
 
-            /* 카테고리 버튼 2x2 반응형 */
             .category-tabs {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -655,7 +656,6 @@
 
     <!-- 헤더 (3분할 구조) -->
     <header>
-        <!-- 좌측: AI 에이전트 -->
         <div class="header-left">
             <div class="agent-logo-box" id="agent-intro-btn" title="AI 에이전트 안내 보기">
                 <img src="/jopani.png" alt="jopani" class="agent-avatar-img" onerror="this.src='https://via.placeholder.com/50?text=JP'">
@@ -665,12 +665,10 @@
             </div>
         </div>
 
-        <!-- 중앙: 메인 타이틀 -->
         <div class="header-center">
             <h1 class="main-title">DAILY SECURITY NEWS</h1>
         </div>
 
-        <!-- 우측: KOMSCO 로고 -->
         <div class="header-right">
             <div class="logo-container">
                 <img src="/komsco_logo.png" alt="KOMSCO" class="komsco-logo-img" onerror="this.src='https://via.placeholder.com/150x55?text=KOMSCO'">
@@ -688,7 +686,6 @@
                 <span style="font-size: 12px; color: var(--text-secondary); font-weight: 700;">카테고리를 선택하세요</span>
             </div>
 
-            <!-- 카테고리 선택 탭 -->
             <div class="category-tabs">
                 <button class="tab-btn" onclick="selectCategory('침해', this)">침해</button>
                 <button class="tab-btn" onclick="selectCategory('해킹', this)">해킹</button>
@@ -706,7 +703,7 @@
         <!-- 오른쪽 컬럼 (3단 구조) -->
         <div class="right-column">
 
-            <!-- 1. 오늘의 보안 뷰포인트 -->
+            <!-- 1. 카테고리별 보안 이슈 요약 -->
             <section class="card ciso-card">
                 <div class="card-header">
                     <h2 class="card-title" style="color: var(--accent-blue);">💡 카테고리별 보안 이슈 요약</h2>
@@ -734,16 +731,17 @@
                 </button>
             </section>
 
-            <!-- 3. 무작위 취약점 탐색 (CVE 아카이브) -->
-            <section class="card cve-archive-card" id="random-cve-box">
+            <!-- 💡 [수정] 3. 최신 게시일 CVE 목록 (데일리 CVE) -->
+            <section class="card cve-archive-card">
                 <div class="card-header">
-                    <h2 class="card-title" style="color: var(--accent-purple);">🔍 데일리 CVE</h2>
-                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">클릭 시 상세 브리핑</span>
+                    <h2 class="card-title" style="color: var(--accent-purple);">🔍 최신 보안 취약점 (CVE)</h2>
+                    <span id="latest-cve-date-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">조회 중...</span>
                 </div>
-                <div class="cve-archive-body">
-                    <span class="cve-badge-code" id="random-cve-badge">CVE-CODE</span>
-                    <div class="cve-archive-title" id="random-cve-title">데이터를 불러오는 중...</div>
-                </div>
+                <ul class="cve-list" id="latest-cve-list">
+                    <li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight: 700;">
+                        취약점 데이터를 불러오는 중입니다...
+                    </li>
+                </ul>
             </section>
 
         </div>
@@ -790,7 +788,6 @@
 
     <script>
         let globalNewsData = {};
-        let randomCveData = null;
         let currentSelectedCategory = null;
 
         // 대시보드 종합 데이터 가져오기
@@ -810,17 +807,9 @@
                     renderNotices(data.latest_notices);
                 }
 
-                // 3. 무작위 CVE
-                if (data.random_cve) {
-                    randomCveData = data.random_cve;
-                    document.getElementById('random-cve-title').innerText = data.random_cve.title;
-                    const badge = document.getElementById('random-cve-badge');
-                    if (data.random_cve.cve_code) {
-                        badge.innerText = data.random_cve.cve_code;
-                        badge.style.display = 'inline-block';
-                    } else {
-                        badge.style.display = 'none';
-                    }
+                // 💡 3. 최신 게시일 기준 CVE 목록 업데이트
+                if (data.latest_cves) {
+                    renderCVEs(data.latest_cves);
                 }
 
                 // 4. 카테고리별 뉴스 캐시 및 화면 렌더링
@@ -852,7 +841,6 @@
                 return;
             }
 
-            // 오늘 날짜 구하기 (한국 시각 기준 YYYY-MM-DD)
             const todayStr = new Date().toLocaleDateString('sv-SE');
 
             noticeData.list.forEach(n => {
@@ -860,7 +848,6 @@
                 li.className = 'notice-item';
                 li.title = n.title;
 
-                // 💡 게시일(posted_date)이 오늘이면 빨간색 NEW 뱃지 태그 추가
                 const isToday = (n.posted_date === todayStr);
                 const newBadgeHtml = isToday ? `<span class="badge-new">NEW</span>` : '';
 
@@ -870,19 +857,58 @@
             });
         }
 
+        // 💡 [신규] 최신 CVE 목록 렌더링 함수
+        function renderCVEs(cveData) {
+            const listEl = document.getElementById('latest-cve-list');
+            const badgeEl = document.getElementById('latest-cve-date-badge');
+            listEl.innerHTML = '';
+
+            if (cveData.target_date) {
+                badgeEl.innerText = `게시일: ${cveData.target_date}`;
+            } else {
+                badgeEl.innerText = '날짜 정보 없음';
+            }
+
+            if (!cveData.list || cveData.list.length === 0) {
+                listEl.innerHTML = `<li style="color: var(--text-secondary); font-size:12px; text-align:center; padding:10px 0; font-weight:700;">최근 등록된 CVE 취약점이 없습니다.</li>`;
+                return;
+            }
+
+            cveData.list.forEach(cve => {
+                const li = document.createElement('li');
+                
+                const cveCodeHtml = cve.cve_code 
+                    ? `<span class="cve-badge-code">${cve.cve_code}</span>` 
+                    : `<span class="cve-badge-code" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;">CVE 미발급</span>`;
+
+                li.innerHTML = `
+                    <div class="cve-item-body">
+                        ${cveCodeHtml}
+                        <div class="cve-archive-title" title="${cve.title}">${cve.title}</div>
+                    </div>
+                `;
+
+                // 클릭 시 모달창으로 상세 브리핑 팝업
+                li.onclick = () => {
+                    document.getElementById('modal-title').innerText = cve.title;
+                    document.getElementById('modal-summary').innerText = cve.summary ? cve.summary : "상세 기술 요약 아카이브가 존재하지 않습니다.";
+                    document.getElementById('modal-link').href = cve.link;
+                    document.getElementById('cve-modal').style.display = 'flex';
+                };
+
+                listEl.appendChild(li);
+            });
+        }
+
         // 카테고리 탭 선택 시 실행
         function selectCategory(category, btnElement) {
             currentSelectedCategory = category;
 
-            // 탭 스타일 활성화
             const buttons = document.querySelectorAll('.tab-btn');
             buttons.forEach(btn => btn.classList.remove('active'));
             if (btnElement) btnElement.classList.add('active');
 
-            // 뉴스 목록 렌더링
             renderNewsList(category);
-
-            // 해당 카테고리에 맞는 동적 CISO 뷰포인트 백엔드 재요청
             fetchDashboardData(category);
         }
 
@@ -914,16 +940,8 @@
             });
         }
 
-        // CVE 상세 모달 조작
+        // CVE 상세 모달 닫기 버튼
         const cveModal = document.getElementById('cve-modal');
-        document.getElementById('random-cve-box').addEventListener('click', () => {
-            if (!randomCveData) return;
-            document.getElementById('modal-title').innerText = randomCveData.title;
-            document.getElementById('modal-summary').innerText = randomCveData.summary ? randomCveData.summary : "상세 기술 요약 아카이브가 존재하지 않습니다.";
-            document.getElementById('modal-link').href = randomCveData.link;
-            cveModal.style.display = 'flex';
-        });
-
         document.getElementById('modal-close').addEventListener('click', () => {
             cveModal.style.display = 'none';
         });

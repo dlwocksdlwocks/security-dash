@@ -1,9 +1,19 @@
 import asyncio
 import datetime
-import zoneinfo
 import json
 import os
+import random
+import zoneinfo
 from apscheduler.schedulers.background import BackgroundScheduler
+from clear_db import reset_SecurityVulnerability
+from crawler import crawl_and_sync_all, crawl_bohonara_vulnerability_all
+from database import (
+    SecurityNews,
+    SecurityNotice,
+    SecurityVulnerability,
+    SessionLocal,
+    init_db,
+)
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,10 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-import random
-from crawler import crawl_and_sync_all, crawl_bohonara_vulnerability_all
-from database import SecurityNews,SecurityNotice ,SecurityVulnerability, SessionLocal, init_db
-from clear_db import reset_SecurityVulnerability
+
 load_dotenv()
 
 app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
@@ -26,28 +33,13 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
 scheduler.start()
 
-# 💡 클라우드 자동 실행용 순차적 작업 함수 (삭제 -> DB세션생성 -> 1~8페이지 전체 수집)
-def init_and_crawl_vulnerabilities():
-    # 1. 기존 취약점 DB 깔끔하게 비우기
-    reset_SecurityVulnerability()
-
-    # 2. DB 세션 생성 후 8페이지 전체 크롤링 수행
-    db = SessionLocal()
-    try:
-        crawl_bohonara_vulnerability_all(db)
-    finally:
-        db.close()
-
 
 @app.on_event("startup")
 async def startup_event():
-
     # 서버 시작 직후 신규 크롤링 1회 수집
-    #asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    # asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    pass
 
-    # 💡 순차적으로 실행되도록 백그라운드 쓰레드로 전달
-    asyncio.create_task(asyncio.to_thread(init_and_crawl_vulnerabilities))
-   
 
 # 프론트엔드 연동 CORS 설정
 app.add_middleware(
@@ -81,12 +73,15 @@ def generate_ciso_view(category: str, news_list: list) -> str:
     if not news_list:
         return f"현재 [{category}] 카테고리에 오늘 수집된 신규 동향 뉴스가 없습니다."
 
-    # 💡 뉴스 제목뿐만 아니라 주요 본문 요약(summary)까지 학습 문맥에 포함
+    # 뉴스 제목뿐만 아니라 주요 본문 요약(summary)까지 학습 문맥에 포함
     news_context = ""
     for idx, news in enumerate(news_list[:5]):
         title = news.title
-        # DB의 summary나 content 활용
-        summary = news.summary if hasattr(news, 'summary') and news.summary else getattr(news, 'content', '')[:150]
+        summary = (
+            news.summary
+            if hasattr(news, "summary") and news.summary
+            else getattr(news, "content", "")[:150]
+        )
         news_context += f"[{idx+1}] 제목: {title}\n    내용: {summary}\n\n"
 
     prompt = f"""
@@ -107,7 +102,7 @@ def generate_ciso_view(category: str, news_list: list) -> str:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",  # 💡 기존 모델(gpt-4o-mini) 그대로 유지
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -125,15 +120,18 @@ def generate_ciso_view(category: str, news_list: list) -> str:
         print(f"❌ CISO 뷰포인트 생성 실패: {e}")
         return f"[{category}] 관련 주요 시스템 접근제어 정책 및 취약점 패치 현황 점검 요망"
 
+
 @app.get("/api/dashboard")
 def get_dashboard_data(
-    category: str = Query(None, description="선택된 카테고리 (침해, 해킹, 개인정보, 기타보안)"),
+    category: str = Query(
+        None, description="선택된 카테고리 (침해, 해킹, 개인정보, 기타보안)"
+    ),
     db: Session = Depends(get_db),
 ):
-    
+
     # 한국 표준시 기준 오늘 날짜 구하기
     KST = zoneinfo.ZoneInfo("Asia/Seoul")
-    today = datetime.datetime.now(KST).date() # 👈 서버 타임존과 무관하게 무조건 한국 오늘 날짜!
+    today = datetime.datetime.now(KST).date()
 
     categories = ["침해", "해킹", "개인정보", "기타보안"]
     news_by_category = {}
@@ -182,24 +180,54 @@ def get_dashboard_data(
     )
     ciso_view = generate_ciso_view(category, selected_news)
 
-    # 3. 무작위 CVE 1건 추출
-    vulnerabilities = db.query(SecurityVulnerability).all()
-    random_vulnerability = None
+    # 3. 가장 최근 게시일 기준 해당 날짜의 CVE 전체 추출
+    latest_record = (
+        db.query(SecurityVulnerability)
+        .order_by(SecurityVulnerability.created_at.desc())
+        .first()
+    )
 
-    if vulnerabilities:
-        # 오늘 날짜(예: 20260721)를 시드(Seed)값으로 설정하여 하루 동안 고정
-        date_seed = int(today.strftime("%Y%m%d"))
-        rnd = random.Random(date_seed)
-        random_vulnerability = rnd.choice(vulnerabilities)
+    daily_vulnerabilities = []
+    latest_cve_date_str = ""  # 💡 [Fix] 변수 초기화 위치 상단 이동
 
-    # 가장 최근에 등록된 공지사항 날짜 찾기
-    latest_notice = db.query(SecurityNotice).order_by(SecurityNotice.posted_date.desc()).first()
+    if latest_record and latest_record.created_at:
+        latest_date = latest_record.created_at.date()
+        latest_cve_date_str = latest_date.strftime("%Y-%m-%d")
+
+        # 최신 작성일과 동일한 날짜에 등록된 모든 CVE 항목 조회
+        items = (
+            db.query(SecurityVulnerability)
+            .filter(func.date(SecurityVulnerability.created_at) == latest_date)
+            .order_by(SecurityVulnerability.created_at.desc())
+            .all()
+        )
+
+        # 💡 [Fix] ORM 객체를 JSON 직렬화 가능한 dict 리스트로 변환
+        daily_vulnerabilities = [
+            {
+                "id": v.id,
+                "cve_code": v.cve_code if v.cve_code else None,
+                "title": v.title,
+                "summary": v.summary if v.summary else "",
+                "link": v.link if v.link else "#",
+                "created_at": (
+                    v.created_at.strftime("%Y-%m-%d") if v.created_at else ""
+                ),
+            }
+            for v in items
+        ]
+
+    # 4. 가장 최근에 등록된 공지사항 날짜 찾기
+    latest_notice = (
+        db.query(SecurityNotice)
+        .order_by(SecurityNotice.posted_date.desc())
+        .first()
+    )
     latest_notices = []
     notice_date_str = ""
 
     if latest_notice:
         notice_date_str = latest_notice.posted_date
-        # 해당 최신 날짜에 등록된 모든 공지글 가져오기 (최대 5건)
         items = (
             db.query(SecurityNotice)
             .filter(SecurityNotice.posted_date == notice_date_str)
@@ -208,7 +236,12 @@ def get_dashboard_data(
             .all()
         )
         latest_notices = [
-            {"id": n.id, "title": n.title, "link": n.link, "posted_date": n.posted_date}
+            {
+                "id": n.id,
+                "title": n.title,
+                "link": n.link,
+                "posted_date": n.posted_date,
+            }
             for n in items
         ]
 
@@ -218,35 +251,12 @@ def get_dashboard_data(
         "news_by_category": news_by_category,
         "latest_notices": {
             "target_date": notice_date_str,
-            "list": latest_notices
+            "list": latest_notices,
         },
-        "random_cve": (
-            {
-                "id": random_vulnerability.id,
-                "cve_code": (
-                    random_vulnerability.cve_code
-                    if random_vulnerability
-                    else None
-                ),
-                "title": (
-                    random_vulnerability.title
-                    if random_vulnerability
-                    else "저장된 취약점 없음"
-                ),
-                "summary": (
-                    random_vulnerability.summary
-                    if random_vulnerability
-                    else ""
-                ),
-                "link": (
-                    random_vulnerability.link
-                    if random_vulnerability
-                    else "#"
-                ),
-            }
-            if random_vulnerability
-            else None
-        ),
+        "latest_cves": {
+            "target_date": latest_cve_date_str,
+            "list": daily_vulnerabilities,
+        },
     }
 
 
