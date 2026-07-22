@@ -5,7 +5,7 @@ import os
 import random
 import zoneinfo
 from apscheduler.schedulers.background import BackgroundScheduler
-from clear_db import reset_SecurityVulnerability, delete_news_by_source
+from clear_db import reset_SecurityVulnerability
 from crawler import crawl_and_sync_all
 from database import (
     SecurityNews,
@@ -29,16 +29,16 @@ app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 init_db()
 
 # 스케줄러 설정 (12시간 주기로 반복)
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
-# scheduler.start()
+scheduler = BackgroundScheduler()
+scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
+scheduler.start()
 
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(asyncio.to_thread(delete_news_by_source))
+
     # 서버 시작 직후 신규 크롤링 1회 수집
-    # asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
     
 
 

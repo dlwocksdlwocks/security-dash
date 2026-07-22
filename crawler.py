@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import feedparser
 from openai import OpenAI
+from aiService import is_security_relevant_with_chatgpt;
 import requests
 
 # 💡 SecurityNotice 및 모델 import
@@ -288,6 +289,7 @@ def crawl_bohonara_vulnerability(db):
         db.rollback()
         print(f"❌ 보호나라 nttId 기반 크롤링 실패: {e}")
 
+
 def crawl_rss_source(db, name, url, default_author):
     """RSS 피드 및 네이버 뉴스에서 최신 기사를 수집하고 AI로 카테고리를 분류하여 KST 시각으로 저장합니다."""
     print(f"\n📡 [{name}] 신규 위협 피드 수집 중...")
@@ -316,7 +318,7 @@ def crawl_rss_source(db, name, url, default_author):
                 e.title = title_tag.get_text(strip=True)
                 e.link = title_tag.get("href")
                 
-                # 언론사 이름 (예: 연합뉴스, 지디넷코리아 등)
+                # 출처/작성자를 '네이버'로 고정
                 e.author = "네이버"
                 
                 # 요약문
@@ -365,10 +367,6 @@ def crawl_rss_source(db, name, url, default_author):
             if exists:
                 continue
 
-            author = default_author
-            if hasattr(entry, "author") and entry.author:
-                author = entry.author
-
             now_kst = datetime.datetime.now(KST)
             published_dt = now_kst
 
@@ -392,7 +390,7 @@ def crawl_rss_source(db, name, url, default_author):
             try:
                 res = session.get(entry.link, headers=HEADERS, timeout=10)
                 
-                # 💡 [수정 포인트] 개별 기사별 최적 인코딩 처리
+                # 개별 기사별 최적 인코딩 처리
                 if "boannews" in entry.link:
                     res.encoding = "euc-kr"
                 else:
@@ -403,13 +401,24 @@ def crawl_rss_source(db, name, url, default_author):
             except Exception:
                 content_text = entry.description if hasattr(entry, "description") else ""
 
+            # 작성자(author) 값 선언
+            author = default_author
+            if hasattr(entry, "author") and entry.author:
+                author = entry.author
+
+            # ---------------- 🛡️ [AI 보안 필터링 적용] ----------------
+            if not is_security_relevant_with_chatgpt(entry.title, content_text):
+                print(f"🗑️ [필터링됨] 보안 이슈 미해당 기사 스킵: {entry.title}")
+                continue
+            # --------------------------------------------------------
+
             try:
                 # ChatGPT 기반 카테고리 분류 & 요약
                 category = classify_category_with_chatgpt(entry.title, content_text)
                 summary = summarize_with_chatgpt(entry.title, content_text, name, author)
 
                 article = SecurityNews(
-                    source=name, # 네이버일 경우 해당 기사의 언론사 이름 표시
+                    source=name,
                     author=author,
                     title=entry.title,
                     link=entry.link,
