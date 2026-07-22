@@ -317,8 +317,7 @@ def crawl_rss_source(db, name, url, default_author):
                 e.link = title_tag.get("href")
                 
                 # 언론사 이름 (예: 연합뉴스, 지디넷코리아 등)
-                press_tag = item.select_one(".sa_text_press")
-                e.author = press_tag.get_text(strip=True) if press_tag else default_author
+                e.author = "네이버"
                 
                 # 요약문
                 summary_tag = item.select_one(".sa_text_lede")
@@ -410,7 +409,7 @@ def crawl_rss_source(db, name, url, default_author):
                 summary = summarize_with_chatgpt(entry.title, content_text, name, author)
 
                 article = SecurityNews(
-                    source=author if "naver.com" in url else name, # 네이버일 경우 해당 기사의 언론사 이름 표시
+                    source=name, # 네이버일 경우 해당 기사의 언론사 이름 표시
                     author=author,
                     title=entry.title,
                     link=entry.link,
