@@ -170,7 +170,6 @@ def crawl_bohonara_notice(db):
                     break
 
             if not posted_date:
-                # 💡 KST 기준 오늘 날짜 저장
                 posted_date = datetime.datetime.now(KST).strftime("%Y-%m-%d")
 
             exists = db.query(SecurityNotice).filter(SecurityNotice.link == full_link).first()
@@ -266,7 +265,7 @@ def crawl_bohonara_vulnerability(db):
                 title, content_text, "KISA 보호나라", "KISA 침해사고분석단"
             )
 
-            # 💡 KST 한국 시각 저장
+            # 💡 [Fix] now_kst 변수 정의 추가
             now_kst = datetime.datetime.now(KST)
 
             article = SecurityVulnerability(
@@ -315,9 +314,13 @@ def crawl_rss_source(db, name, url, default_author):
                 e.title = item.title.text if item.title else ""
                 e.link = item.link.text if item.link else ""
                 e.description = item.description.text if item.description else ""
+
+                date_tag = item.find("dc:date") or item.find("pubDate")
+                e.published = date_tag.text if date_tag else ""
                 feed.entries.append(e)
 
         count = 0
+
         for entry in feed.entries[:10]:
             if not entry.title:
                 continue
@@ -334,8 +337,30 @@ def crawl_rss_source(db, name, url, default_author):
             if hasattr(entry, "author") and entry.author:
                 author = entry.author
 
-            print(f"📰 새 신규 위협 기사 발견: [{name}] - {entry.title}")
+            # 💡 루프 내부에서 KST 현재 시각 새로 갱신
+            now_kst = datetime.datetime.now(KST)
 
+            # ----------------------------------------------------
+            # 📅 RSS 원본 발행일(published_at) 파싱 로직
+            # ----------------------------------------------------
+            published_dt = now_kst
+
+            pub_parsed = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+            
+            if pub_parsed:
+                dt_utc = datetime.datetime(*pub_parsed[:6], tzinfo=datetime.timezone.utc)
+                published_dt = dt_utc.astimezone(KST)
+            elif hasattr(entry, "published") and entry.published:
+                raw_date = entry.published.strip()
+                try:
+                    if len(raw_date) >= 10 and raw_date[:10].count("-") == 2:
+                        date_part = raw_date[:10]
+                        published_dt = datetime.datetime.strptime(date_part, "%Y-%m-%d").replace(tzinfo=KST)
+                except Exception:
+                    published_dt = now_kst
+
+            print(f"📰 새 신규 위협 기사 발견: [{name}] - {entry.title} (발행일: {published_dt.strftime('%Y-%m-%d')})")
+            
             content_text = ""
             try:
                 res = session.get(entry.link, headers=HEADERS, timeout=10)
@@ -345,13 +370,9 @@ def crawl_rss_source(db, name, url, default_author):
             except Exception:
                 content_text = entry.description if hasattr(entry, "description") else ""
 
-            # 💡 건별 예외 처리로 실패 시 안전 수집 보장
             try:
                 category = classify_category_with_chatgpt(entry.title, content_text)
                 summary = summarize_with_chatgpt(entry.title, content_text, name, author)
-
-                # 💡 KST(한국 표준시) 적용
-                now_kst = datetime.datetime.now(KST)
 
                 article = SecurityNews(
                     source=name,
@@ -361,11 +382,11 @@ def crawl_rss_source(db, name, url, default_author):
                     content=content_text,
                     summary=summary,
                     category=category,
-                    created_at=now_kst,    # 👈 KST 시각 명시 저장
-                    published_at=now_kst,  # 👈 KST 시각 명시 저장
+                    created_at=now_kst,        # 👈 KST 수집 시각
+                    published_at=published_dt, # 👈 [Fix] 파싱된 KST 원본 발행일 변수 지정
                 )
                 db.add(article)
-                db.commit() # 💡 건별 저장으로 세션 보호
+                db.commit()
                 count += 1
             except Exception as item_err:
                 db.rollback()
