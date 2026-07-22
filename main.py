@@ -6,7 +6,7 @@ import random
 import zoneinfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from clear_db import reset_SecurityVulnerability
-from crawler import crawl_and_sync_all, crawl_bohonara_vulnerability_all
+from crawler import crawl_and_sync_all
 from database import (
     SecurityNews,
     SecurityNotice,
