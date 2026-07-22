@@ -1,7 +1,7 @@
 import os
 import zoneinfo
 import datetime
-from database import SessionLocal, SecurityNews, init_db
+from database import SessionLocal, SecurityVulnerability, SecurityNews, init_db
 from crawler import crawl_and_sync_all
 
 KST = zoneinfo.ZoneInfo("Asia/Seoul")
