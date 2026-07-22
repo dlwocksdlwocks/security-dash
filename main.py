@@ -37,8 +37,8 @@ scheduler.start()
 @app.on_event("startup")
 async def startup_event():
     # 서버 시작 직후 신규 크롤링 1회 수집
-    # asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
-    pass
+    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
+    
 
 
 # 프론트엔드 연동 CORS 설정
