@@ -15,7 +15,7 @@ def is_security_relevant_with_chatgpt(title, content):
     """
     # 💡 1차 단순 키워드 노이즈 제거 (API 호출 절약용)
     noise_keywords = ["주재", "동정", "인사", "임명", "동향", "MOU 체결", "개회사", "축사"]
-    core_keywords = ["유출", "해킹", "악성코드", "취약점", "랜섬웨어", "침해"]
+    core_keywords = ["유출", "해킹", "악성코드", "취약점", "랜섬웨어", "침해","사고","조폐 공사","조폐공사"]
 
     # 동정성 키워드가 포함되어 있고, 핵심 보안 키워드가 없다면 AI 호출 없이 바로 제외(False)
     has_noise = any(keyword in title for keyword in noise_keywords)
