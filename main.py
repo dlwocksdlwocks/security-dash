@@ -29,15 +29,26 @@ app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 
 init_db()
 
-# 수신인 메일 목록 (테스트용 및 부서원 주소)
+# 수신인 메일 목록
 RECEIVER_EMAILS = [
     "jaechanjj@komsco.com"
 ]
 
+# 💡 중복 메일 발송 방지 플래그
+is_email_sending = False
+
 def trigger_daily_email():
     """
-    DB에서 오늘 자 뉴스 및 CVE 데이터를 조회하여 이메일 브리핑 발송
+    DB에서 오늘 자 뉴스 및 CVE 데이터를 조회하여 이메일 브리핑 발송 (중복 실행 방지 적용)
     """
+    global is_email_sending
+
+    # 이미 메일 발송이 진행 중이면 중복 실행 차단
+    if is_email_sending:
+        print("⚠️ [이메일] 이미 메일 발송 작업이 진행 중입니다. 중복 요청을 무시합니다.")
+        return
+
+    is_email_sending = True
     db = SessionLocal()
     try:
         KST = zoneinfo.ZoneInfo("Asia/Seoul")
@@ -102,27 +113,30 @@ def trigger_daily_email():
         print(f"❌ [이메일 오류] 발송 실패: {e}")
     finally:
         db.close()
+        is_email_sending = False  # 발송 완료 후 플래그 해제
 
 
 # 스케줄러 설정
 scheduler = BackgroundScheduler()
 # 12시간 주기 크롤링 실행
 scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
-# 매일 14:00 자동 발송 스케줄도 유지
+# 매일 14:00 자동 발송 스케줄
 scheduler.add_job(trigger_daily_email, "cron", hour=14, minute=0, timezone="Asia/Seoul")
 scheduler.start()
 
 
 async def run_startup_tasks():
-    # 1. 크롤링 실행
+    # 1. 크롤링 수행
     await asyncio.to_thread(crawl_and_sync_all)
-    # 2. 크롤링 완료 직후 메일 발송 실행
+    # 2. 메일 발송 수행
     await asyncio.to_thread(trigger_daily_email)
+
 
 @app.on_event("startup")
 async def startup_event():
-    # 웹 서버 포트(Port)를 즉시 오픈하도록 백그라운드 태스크로 전환
+    # 백그라운드 비동기 태스크로 실행하여 포트 즉시 오픈 및 중복 방지 적용
     asyncio.create_task(run_startup_tasks())
+
 
 # 프론트엔드 연동 CORS 설정
 app.add_middleware(
