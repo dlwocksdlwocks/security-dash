@@ -112,10 +112,10 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     </html>
     """
 
-    # SMTP 발송 실행
+    ## SMTP 발송 실행 (465번 SSL 포트 사용으로 타임아웃 방지)
     try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
+        # smtplib.SMTP + starttls 대신 SMTP_SSL 사용
+        with smtplib.SMTP_SSL("smtp.naver.com", 465, timeout=15) as server:
             server.login(sender_email, sender_password)
             
             for receiver in receiver_emails:
