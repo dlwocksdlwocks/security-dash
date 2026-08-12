@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from email_service import send_daily_briefing_email
 
 load_dotenv()
 
@@ -28,18 +29,96 @@ app = FastAPI(title="정보보안센터 위협 인텔리전스 대시보드")
 
 init_db()
 
-# 스케줄러 설정 (12시간 주기로 반복)
+# 수신인 메일 목록 (테스트용 및 부서원 주소)
+RECEIVER_EMAILS = [
+    "jaechanjj@komsco.com"
+]
+
+def trigger_daily_email():
+    """
+    DB에서 오늘 자 뉴스 및 CVE 데이터를 조회하여 이메일 브리핑 발송
+    """
+    db = SessionLocal()
+    try:
+        KST = zoneinfo.ZoneInfo("Asia/Seoul")
+        today = datetime.datetime.now(KST).date()
+
+        # 1. DB에서 오늘 자 뉴스 조회 및 카테고리별 분류
+        today_news_items = (
+            db.query(SecurityNews)
+            .filter(func.date(SecurityNews.created_at) == today)
+            .order_by(SecurityNews.id.desc())
+            .all()
+        )
+
+        categorized_news = {
+            "침해": [],
+            "해킹": [],
+            "개인정보": [],
+            "기타": []
+        }
+
+        for news in today_news_items:
+            cat = news.category if news.category in categorized_news else "기타"
+            categorized_news[cat].append({
+                "title": news.title,
+                "summary": news.summary if hasattr(news, "summary") and news.summary else "",
+                "link": news.link
+            })
+
+        # 2. DB에서 최근 수집된 CVE 취약점 항목 조회
+        latest_cve_record = (
+            db.query(SecurityVulnerability)
+            .order_by(SecurityVulnerability.created_at.desc())
+            .first()
+        )
+
+        cve_data = []
+        if latest_cve_record and latest_cve_record.created_at:
+            latest_cve_date = latest_cve_record.created_at.date()
+            cve_items = (
+                db.query(SecurityVulnerability)
+                .filter(func.date(SecurityVulnerability.created_at) == latest_cve_date)
+                .order_by(SecurityVulnerability.created_at.desc())
+                .all()
+            )
+            cve_data = [
+                {
+                    "code": cve.cve_code if cve.cve_code else "CVE ID",
+                    "title": cve.title,
+                    "summary": cve.summary if cve.summary else ""
+                }
+                for cve in cve_items
+            ]
+
+        # 3. 단방향 이메일 발송 함수 호출
+        send_daily_briefing_email(
+            receiver_emails=RECEIVER_EMAILS,
+            news_data=categorized_news,
+            cve_list=cve_data
+        )
+        print("🎉 [이메일 완료] 브리핑 이메일 발송 완료")
+    except Exception as e:
+        print(f"❌ [이메일 오류] 발송 실패: {e}")
+    finally:
+        db.close()
+
+
+# 스케줄러 설정
 scheduler = BackgroundScheduler()
+# 12시간 주기 크롤링 실행
 scheduler.add_job(crawl_and_sync_all, "interval", hours=12)
+# 매일 14:00 자동 발송 스케줄도 유지
+scheduler.add_job(trigger_daily_email, "cron", hour=14, minute=0, timezone="Asia/Seoul")
 scheduler.start()
 
 
 @app.on_event("startup")
 async def startup_event():
-
-    # 서버 시작 직후 신규 크롤링 1회 수집
-    asyncio.create_task(asyncio.to_thread(crawl_and_sync_all))
-    
+    # 1. 서버 시작 직후 신규 크롤링 1회 수집
+    await asyncio.to_thread(crawl_and_sync_all)
+    # 2. 크롤링 완료 후 즉시 메일 테스트 발송 실행 🚀
+    await asyncio.to_thread(trigger_daily_email)
 
 
 # 프론트엔드 연동 CORS 설정
@@ -74,7 +153,6 @@ def generate_ciso_view(category: str, news_list: list) -> str:
     if not news_list:
         return f"현재 [{category}] 카테고리에 오늘 수집된 신규 동향 뉴스가 없습니다."
 
-    # 뉴스 제목뿐만 아니라 주요 본문 요약(summary)까지 학습 문맥에 포함
     news_context = ""
     for idx, news in enumerate(news_list[:5]):
         title = news.title
@@ -130,14 +208,12 @@ def get_dashboard_data(
     db: Session = Depends(get_db),
 ):
 
-    # 한국 표준시 기준 오늘 날짜 구하기
     KST = zoneinfo.ZoneInfo("Asia/Seoul")
     today = datetime.datetime.now(KST).date()
 
     categories = ["침해", "해킹", "개인정보", "기타보안"]
     news_by_category = {}
 
-    # 1. 4개 카테고리별 오늘 자 신규 뉴스만 엄격 수집
     for cat in categories:
         items = (
             db.query(SecurityNews)
@@ -166,7 +242,6 @@ def get_dashboard_data(
             for news in items
         ]
 
-    # 2. 선택된 카테고리의 '오늘 자' 기사 기반 동적 CISO 뷰포인트 생성
     selected_news = (
         db.query(SecurityNews)
         .filter(
@@ -181,7 +256,6 @@ def get_dashboard_data(
     )
     ciso_view = generate_ciso_view(category, selected_news)
 
-    # 3. 가장 최근 게시일 기준 해당 날짜의 CVE 전체 추출
     latest_record = (
         db.query(SecurityVulnerability)
         .order_by(SecurityVulnerability.created_at.desc())
@@ -189,13 +263,12 @@ def get_dashboard_data(
     )
 
     daily_vulnerabilities = []
-    latest_cve_date_str = ""  # 💡 [Fix] 변수 초기화 위치 상단 이동
+    latest_cve_date_str = ""
 
     if latest_record and latest_record.created_at:
         latest_date = latest_record.created_at.date()
         latest_cve_date_str = latest_date.strftime("%Y-%m-%d")
 
-        # 최신 작성일과 동일한 날짜에 등록된 모든 CVE 항목 조회
         items = (
             db.query(SecurityVulnerability)
             .filter(func.date(SecurityVulnerability.created_at) == latest_date)
@@ -203,7 +276,6 @@ def get_dashboard_data(
             .all()
         )
 
-        # 💡 [Fix] ORM 객체를 JSON 직렬화 가능한 dict 리스트로 변환
         daily_vulnerabilities = [
             {
                 "id": v.id,
@@ -218,7 +290,6 @@ def get_dashboard_data(
             for v in items
         ]
 
-    # 4. 가장 최근에 등록된 공지사항 날짜 찾기
     latest_notice = (
         db.query(SecurityNotice)
         .order_by(SecurityNotice.posted_date.desc())
@@ -259,7 +330,6 @@ def get_dashboard_data(
             "list": daily_vulnerabilities,
         },
     }
-
 
 # 루트 및 정적 파일 매핑
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
