@@ -31,6 +31,7 @@ init_db()
 
 # 수신인 메일 목록
 RECEIVER_EMAILS = [
+    "jaechanjj@naver.com",
     "jaechanjj@komsco.com"
 ]
 
