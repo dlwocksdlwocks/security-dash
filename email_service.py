@@ -1,25 +1,22 @@
 import os
 import smtplib
-import time
-import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: list):
     """
-    네이버 SMTP를 활용해 카테고리별 상위 이슈 및 CVE 정보를 요약하여 일일 이메일 단방향 브리핑 발송
+    Gmail SMTP를 활용해 동료들에게 일일 이메일 단방향 브리핑 발송
     """
-    smtp_server = "smtp.naver.com"
+    smtp_server = "smtp.gmail.com"
     smtp_port = 465
     
-    sender_email = os.getenv("NAVER_MAIL_USER")
-    sender_password = os.getenv("NAVER_MAIL_PASS")
+    sender_email = os.getenv("GMAIL_USER")
+    sender_password = os.getenv("GMAIL_PASS")
 
     if not sender_email or not sender_password:
-        print("❌ [이메일] NAVER_MAIL_USER 또는 NAVER_MAIL_PASS 환경변수가 설정되지 않았습니다.")
+        print("❌ [이메일] GMAIL_USER 또는 GMAIL_PASS 환경변수가 설정되지 않았습니다.")
         return
 
-    # 4개 카테고리 매핑
     categories = [
         ("1. 침해사고 동향", news_data.get("침해", [])),
         ("2. 해킹 및 악성코드", news_data.get("해킹", [])),
@@ -27,15 +24,16 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
         ("4. 기타 보안 동향", news_data.get("기타", []))
     ]
 
-    # HTML 본문 생성 (동일)
     html_content = f"""
     <html>
     <body style="font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: #333333; line-height: 1.6; background-color: #f4f6f9; padding: 20px 0; margin: 0;">
         <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            
             <div style="border-bottom: 3px solid #2b6cb0; padding-bottom: 15px; margin-bottom: 20px;">
                 <h2 style="color: #1a365d; margin: 0 0 5px 0; font-size: 20px;">🛡️ Daily 보안 위협 인텔리전스 브리핑</h2>
                 <p style="color: #718096; font-size: 13px; margin: 0;">CISO 및 정보보안 담당자를 위한 금일 주요 보안 이슈 요약</p>
             </div>
+
             <p style="font-size: 14px; color: #4a5568; margin-bottom: 20px;">
                 안녕하세요, 오늘 수집 및 AI 2단계 필터링이 완료된 주요 보안 위협 요약 정보입니다.
             </p>
@@ -101,29 +99,18 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     </html>
     """
 
-    # 💡 연결 타임아웃 대책: 최대 3회 재시도(Retry) 로직 적용
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"📧 [이메일] 네이버 SMTP 연결 시도중... ({attempt}/{max_retries})")
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
-                server.login(sender_email, sender_password)
+    try:
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+            server.login(sender_email, sender_password)
+            
+            for receiver in receiver_emails:
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약"
+                msg['From'] = f"KOMSCO 보안인텔리전스 <{sender_email}>"
+                msg['To'] = receiver
+                msg.attach(MIMEText(html_content, 'html'))
                 
-                for receiver in receiver_emails:
-                    msg = MIMEMultipart('alternative')
-                    msg['Subject'] = "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약"
-                    msg['From'] = f"KOMSCO 보안인텔리전스 <{sender_email}>"
-                    msg['To'] = receiver
-                    msg.attach(MIMEText(html_content, 'html'))
-                    
-                    server.sendmail(sender_email, receiver, msg.as_string())
-                    print(f"✅ [이메일 완료] {receiver} 님에게 발송 성공")
-            # 성공 시 재시도 루프 종료
-            break
-        except Exception as e:
-            print(f"⚠️ [이메일 시도 {attempt} 실패] 사유: {e}")
-            if attempt < max_retries:
-                time.sleep(3)  # 3초 대기 후 재시도
-            else:
-                print(f"❌ [이메일 최종 오류] 3회 시도 모두 실패:")
-                traceback.print_exc()
+                server.sendmail(sender_email, receiver, msg.as_string())
+                print(f"✅ [이메일 완료] {receiver} 님에게 발송 성공")
+    except Exception as e:
+        print(f"❌ [이메일 오류] Gmail 발송 실패: {e}")
