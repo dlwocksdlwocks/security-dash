@@ -5,10 +5,10 @@ from email.mime.text import MIMEText
 
 def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: list):
     """
-    Gmail SMTP를 활용해 동료들에게 일일 이메일 단방향 브리핑 발송
+    Gmail SMTP(587번 포트 + STARTTLS)를 활용해 동료들에게 일일 이메일 브리핑 발송
     """
     smtp_server = "smtp.gmail.com"
-    smtp_port = 465
+    smtp_port = 587  # Render 환경에서는 465 대신 587(TLS)이 네트워크 도달률이 높습니다.
     
     sender_email = os.getenv("GMAIL_USER")
     sender_password = os.getenv("GMAIL_PASS")
@@ -17,6 +17,7 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
         print("❌ [이메일] GMAIL_USER 또는 GMAIL_PASS 환경변수가 설정되지 않았습니다.")
         return
 
+    # 카테고리 매핑 및 HTML 본문 생성을 위한 동일 로직
     categories = [
         ("1. 침해사고 동향", news_data.get("침해", [])),
         ("2. 해킹 및 악성코드", news_data.get("해킹", [])),
@@ -28,12 +29,10 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     <html>
     <body style="font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: #333333; line-height: 1.6; background-color: #f4f6f9; padding: 20px 0; margin: 0;">
         <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            
             <div style="border-bottom: 3px solid #2b6cb0; padding-bottom: 15px; margin-bottom: 20px;">
                 <h2 style="color: #1a365d; margin: 0 0 5px 0; font-size: 20px;">🛡️ Daily 보안 위협 인텔리전스 브리핑</h2>
                 <p style="color: #718096; font-size: 13px; margin: 0;">CISO 및 정보보안 담당자를 위한 금일 주요 보안 이슈 요약</p>
             </div>
-
             <p style="font-size: 14px; color: #4a5568; margin-bottom: 20px;">
                 안녕하세요, 오늘 수집 및 AI 2단계 필터링이 완료된 주요 보안 위협 요약 정보입니다.
             </p>
@@ -99,8 +98,12 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     </html>
     """
 
+    # SMTP_SSL 대신 일반 SMTP(587 포트) 사용 후 STARTTLS로 보안 연결 전환
     try:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
+            server.ehlo()
+            server.starttls()  # TLS 보안 연결 설정
+            server.ehlo()
             server.login(sender_email, sender_password)
             
             for receiver in receiver_emails:
