@@ -1,14 +1,16 @@
 import os
+import socket
 import smtplib
+import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: list):
     """
-    Gmail SMTP(587번 포트 + STARTTLS)를 활용해 동료들에게 일일 이메일 브리핑 발송
+    Gmail SMTP(587번 포트 + STARTTLS + IPv4 강제)를 활용해 동료들에게 일일 이메일 브리핑 발송
     """
     smtp_server = "smtp.gmail.com"
-    smtp_port = 587  # Render 환경에서는 465 대신 587(TLS)이 네트워크 도달률이 높습니다.
+    smtp_port = 587
     
     sender_email = os.getenv("GMAIL_USER")
     sender_password = os.getenv("GMAIL_PASS")
@@ -17,7 +19,6 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
         print("❌ [이메일] GMAIL_USER 또는 GMAIL_PASS 환경변수가 설정되지 않았습니다.")
         return
 
-    # 카테고리 매핑 및 HTML 본문 생성을 위한 동일 로직
     categories = [
         ("1. 침해사고 동향", news_data.get("침해", [])),
         ("2. 해킹 및 악성코드", news_data.get("해킹", [])),
@@ -98,11 +99,17 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     </html>
     """
 
-    # SMTP_SSL 대신 일반 SMTP(587 포트) 사용 후 STARTTLS로 보안 연결 전환
+    # IPv4 연결 강제 지정
+    old_getaddrinfo = socket.getaddrinfo
+    def new_getaddrinfo(*args, **kwargs):
+        return [res for res in old_getaddrinfo(*args, **kwargs) if res[0] == socket.AF_INET]
+
+    socket.getaddrinfo = new_getaddrinfo
+
     try:
         with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
             server.ehlo()
-            server.starttls()  # TLS 보안 연결 설정
+            server.starttls()
             server.ehlo()
             server.login(sender_email, sender_password)
             
@@ -117,3 +124,6 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
                 print(f"✅ [이메일 완료] {receiver} 님에게 발송 성공")
     except Exception as e:
         print(f"❌ [이메일 오류] Gmail 발송 실패: {e}")
+        traceback.print_exc()
+    finally:
+        socket.getaddrinfo = old_getaddrinfo
