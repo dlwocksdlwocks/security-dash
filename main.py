@@ -113,13 +113,16 @@ scheduler.add_job(trigger_daily_email, "cron", hour=14, minute=0, timezone="Asia
 scheduler.start()
 
 
-@app.on_event("startup")
-async def startup_event():
-    # 1. 서버 시작 직후 신규 크롤링 1회 수집
+async def run_startup_tasks():
+    # 1. 크롤링 실행
     await asyncio.to_thread(crawl_and_sync_all)
-    # 2. 크롤링 완료 후 즉시 메일 테스트 발송 실행 🚀
+    # 2. 크롤링 완료 직후 메일 발송 실행
     await asyncio.to_thread(trigger_daily_email)
 
+@app.on_event("startup")
+async def startup_event():
+    # 웹 서버 포트(Port)를 즉시 오픈하도록 백그라운드 태스크로 전환
+    asyncio.create_task(run_startup_tasks())
 
 # 프론트엔드 연동 CORS 설정
 app.add_middleware(
