@@ -11,3 +11,5 @@ lxml
 aiofiles
 APScheduler
 tzdata
+google-api-python-client
+google-auth

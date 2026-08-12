@@ -1,29 +1,51 @@
+import base64
 import os
-import socket
-import smtplib
-import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
-def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: list):
-    """
-    Gmail SMTP(587번 포트 + STARTTLS + IPv4 강제)를 활용해 동료들에게 일일 이메일 브리핑 발송
-    """
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    
+
+def send_daily_briefing_email(
+    receiver_emails: list, news_data: dict, cve_list: list
+):
+    """Gmail API(HTTPS 443 포트)를 활용해 동료들에게 브리핑 발송 (Render SMTP 차단 완벽 우회)"""
+    client_id = os.getenv("GMAIL_CLIENT_ID")
+    client_secret = os.getenv("GMAIL_CLIENT_SECRET")
+    refresh_token = os.getenv("GMAIL_REFRESH_TOKEN")
     sender_email = os.getenv("GMAIL_USER")
-    sender_password = os.getenv("GMAIL_PASS")
 
-    if not sender_email or not sender_password:
-        print("❌ [이메일] GMAIL_USER 또는 GMAIL_PASS 환경변수가 설정되지 않았습니다.")
+    if not all([client_id, client_secret, refresh_token, sender_email]):
+        print(
+            "❌ [이메일] Gmail API 인증 환경변수(CLIENT_ID, SECRET, REFRESH_TOKEN, USER)가 부족합니다."
+        )
         return
 
+    # 1. OAuth2 토큰으로 자동 인증
+    try:
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+
+        if not creds.valid:
+            creds.refresh(Request())
+
+        service = build("gmail", "v1", credentials=creds)
+    except Exception as e:
+        print(f"❌ [이메일 오류] Gmail API 인증 실패: {e}")
+        return
+
+    # 2. 본문 구성
     categories = [
         ("1. 침해사고 동향", news_data.get("침해", [])),
         ("2. 해킹 및 악성코드", news_data.get("해킹", [])),
         ("3. 개인정보보호 이슈", news_data.get("개인정보", [])),
-        ("4. 기타 보안 동향", news_data.get("기타", []))
+        ("4. 기타 보안 동향", news_data.get("기타", [])),
     ]
 
     html_content = f"""
@@ -70,7 +92,7 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
         <div style="margin-top: 25px; border-top: 2px dashed #e2e8f0; padding-top: 15px;">
             <h3 style="color: #c53030; font-size: 15px; border-left: 4px solid #e53e3e; padding-left: 8px; margin-bottom: 10px;">⚠️ 금일 주요 CVE 취약점 (Top 3)</h3>
     """
-    
+
     top_cves = cve_list[:3] if cve_list else []
     if top_cves:
         for cve in top_cves:
@@ -99,31 +121,22 @@ def send_daily_briefing_email(receiver_emails: list, news_data: dict, cve_list: 
     </html>
     """
 
-    # IPv4 연결 강제 지정
-    old_getaddrinfo = socket.getaddrinfo
-    def new_getaddrinfo(*args, **kwargs):
-        return [res for res in old_getaddrinfo(*args, **kwargs) if res[0] == socket.AF_INET]
-
-    socket.getaddrinfo = new_getaddrinfo
-
+    # 3. HTTP API 방식으로 발송 (포트 차단 우회)
     try:
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(sender_email, sender_password)
-            
-            for receiver in receiver_emails:
-                msg = MIMEMultipart('alternative')
-                msg['Subject'] = "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약"
-                msg['From'] = f"KOMSCO 보안인텔리전스 <{sender_email}>"
-                msg['To'] = receiver
-                msg.attach(MIMEText(html_content, 'html'))
-                
-                server.sendmail(sender_email, receiver, msg.as_string())
-                print(f"✅ [이메일 완료] {receiver} 님에게 발송 성공")
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약"
+        msg["From"] = f"KOMSCO 보안인텔리전스 <{sender_email}>"
+        msg["To"] = ", ".join(receiver_emails)
+        msg.attach(MIMEText(html_content, "html"))
+
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        body = {"raw": raw_message}
+
+        response = (
+            service.users().messages().send(userId="me", body=body).execute()
+        )
+        print(
+            f"✅ [이메일 완료] Gmail API 발송 성공 (메시지 ID: {response.get('id')})"
+        )
     except Exception as e:
-        print(f"❌ [이메일 오류] Gmail 발송 실패: {e}")
-        traceback.print_exc()
-    finally:
-        socket.getaddrinfo = old_getaddrinfo
+        print(f"❌ [이메일 오류] Gmail API 발송 실패: {e}")
