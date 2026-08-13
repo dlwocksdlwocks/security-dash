@@ -130,7 +130,7 @@ async def run_startup_tasks():
     # 1. 크롤링 수행
     await asyncio.to_thread(crawl_and_sync_all)
     # 2. 메일 발송 수행
-    #await asyncio.to_thread(trigger_daily_email)
+    await asyncio.to_thread(trigger_daily_email)
 
 
 @app.on_event("startup")
