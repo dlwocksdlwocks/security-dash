@@ -1,46 +1,18 @@
-import base64
 import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+import requests
 
 
 def send_daily_briefing_email(
     receiver_emails: list, news_data: dict, cve_list: list
 ):
-    """Gmail API(HTTPS 443 포트)를 활용해 동료들에게 브리핑 발송 (Render SMTP 차단 완벽 우회)"""
-    client_id = os.getenv("GMAIL_CLIENT_ID")
-    client_secret = os.getenv("GMAIL_CLIENT_SECRET")
-    refresh_token = os.getenv("GMAIL_REFRESH_TOKEN")
-    sender_email = os.getenv("GMAIL_USER")
+    """Resend API 기반 이메일 발송 - 발신 IP/도메인 평판 테스트"""
+    resend_api_key = os.getenv("RESEND_API_KEY")
 
-    if not all([client_id, client_secret, refresh_token, sender_email]):
-        print(
-            "❌ [이메일] Gmail API 인증 환경변수(CLIENT_ID, SECRET, REFRESH_TOKEN, USER)가 부족합니다."
-        )
+    if not resend_api_key:
+        print("❌ [이메일] RESEND_API_KEY 환경변수가 설정되지 않았습니다.")
         return
 
-    # 1. OAuth2 토큰으로 자동 인증
-    try:
-        creds = Credentials(
-            token=None,
-            refresh_token=refresh_token,
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=client_id,
-            client_secret=client_secret,
-        )
-
-        if not creds.valid:
-            creds.refresh(Request())
-
-        service = build("gmail", "v1", credentials=creds)
-    except Exception as e:
-        print(f"❌ [이메일 오류] Gmail API 인증 실패: {e}")
-        return
-
-    # 2. 본문 구성
+    # 1. HTML 본문 가공
     categories = [
         ("1. 침해사고 동향", news_data.get("침해", [])),
         ("2. 해킹 및 악성코드", news_data.get("해킹", [])),
@@ -121,22 +93,32 @@ def send_daily_briefing_email(
     </html>
     """
 
-    # 3. HTTP API 방식으로 발송 (포트 차단 우회)
+    # 2. Resend API 호출 세팅
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {resend_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "from": "보안인텔리전스 <onboarding@resend.dev>",
+        "to": receiver_emails,
+        "subject": "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약",
+        "html": html_content,
+    }
+
+    # 3. HTTP POST 발송
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "[보안 브리핑] 금일 주요 보안 위협 및 CVE 취약점 요약"
-        msg["From"] = f"KOMSCO 보안인텔리전스 <{sender_email}>"
-        msg["To"] = ", ".join(receiver_emails)
-        msg.attach(MIMEText(html_content, "html"))
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        res_data = response.json()
 
-        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
-        body = {"raw": raw_message}
-
-        response = (
-            service.users().messages().send(userId="me", body=body).execute()
-        )
-        print(
-            f"✅ [이메일 완료] Gmail API 발송 성공 (메시지 ID: {response.get('id')})"
-        )
+        if response.status_code == 200 or response.status_code == 201:
+            print(
+                f"✅ [이메일 완료] Resend API 발송 성공 (ID: {res_data.get('id')})"
+            )
+        else:
+            print(
+                f"❌ [이메일 오류] Resend API 응답 실패: {response.status_code} - {res_data}"
+            )
     except Exception as e:
-        print(f"❌ [이메일 오류] Gmail API 발송 실패: {e}")
+        print(f"❌ [이메일 오류] Resend API 통신 중 에러 발생: {e}")
